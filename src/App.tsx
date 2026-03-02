@@ -7,7 +7,17 @@ import RatesSection from './components/home/RatesSection';
 import FeaturesSection from './components/home/FeaturesSection';
 import SecuritySection from './components/home/SecuritySection';
 import FAQSection from './components/home/FAQSection';
+import DashboardLayout from './layouts/DashboardLayout';
 import DashboardPage from './pages/Dashboard';
+import RegisterPage from './pages/Register';
+import RegisterSuccessPage from './pages/RegisterSuccess';
+import QRPage from './pages/dashboard/QR';
+import TransactionsPage from './pages/dashboard/Transactions';
+import AnalyticsPage from './pages/dashboard/Analytics';
+import SavingsPage from './pages/dashboard/Savings';
+import LendingPage from './pages/dashboard/Lending';
+import IdentityPage from './pages/dashboard/Identity';
+import VoicePage from './pages/dashboard/Voice';
 import Footer from './components/Footer';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -32,7 +42,18 @@ function App() {
         <Header />
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/register/success" element={<RegisterSuccessPage />} />
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route index element={<DashboardPage />} />
+            <Route path="qr" element={<QRPage />} />
+            <Route path="transactions" element={<TransactionsPage />} />
+            <Route path="analytics" element={<AnalyticsPage />} />
+            <Route path="savings" element={<SavingsPage />} />
+            <Route path="lending" element={<LendingPage />} />
+            <Route path="identity" element={<IdentityPage />} />
+            <Route path="voice" element={<VoicePage />} />
+          </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <ToastContainer position="top-right" autoClose={4000} hideProgressBar newestOnTop closeOnClick />

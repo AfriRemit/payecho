@@ -1,171 +1,120 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08 },
+  },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
+};
+
+const FEED_PLACEHOLDER = [
+  { amount: '25', total: '120' },
+  { amount: '50', total: '200' },
+  { amount: '15', total: '85' },
+];
+
 const Dashboard: React.FC = () => {
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  };
-
-  const item = {
-    hidden: { opacity: 0, y: 16 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
-  };
-
   return (
-    <div className="min-h-screen bg-primary">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 pb-10 md:pt-20">
-        <motion.div
-          variants={container}
-          initial="hidden"
-          animate="show"
-          className="space-y-10"
+    <motion.div
+      variants={container}
+      initial="hidden"
+      animate="show"
+      className="space-y-8"
+    >
+      <motion.div variants={item} className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-accent-green mb-2">Merchant dashboard · Base · USDC</p>
+          <h1 className="text-2xl md:text-3xl font-semibold text-primary leading-tight mb-2">
+            Your onchain revenue home
+          </h1>
+          <p className="text-secondary text-sm md:text-base max-w-2xl">
+            Balance, live payment feed, and credit score. Every payment builds your ledger.
+          </p>
+        </div>
+        <Link
+          to="/dashboard/qr"
+          className="inline-flex items-center gap-2 rounded-full bg-accent-green px-5 py-2.5 text-sm font-medium text-white hover:bg-accent-green-hover transition-colors shrink-0 sm:mt-9"
         >
-          {/* Header */}
-          <motion.div variants={item} className="max-w-3xl">
-            <p className="text-sm font-medium text-accent-green mb-2">
-              Merchant dashboard · Base · USDC
-            </p>
-            <h1 className="text-3xl md:text-4xl font-semibold text-primary leading-tight mb-3">
-              Your onchain revenue home.
-            </h1>
-            <p className="text-sm md:text-base text-secondary leading-relaxed">
-              Connect your wallet, create your merchant profile, and start accepting fraud‑proof USDC
-              payments with instant voice confirmation. Every payment builds your onchain revenue
-              history and credit score.
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
-            {/* Onboarding steps */}
-            <motion.div
-              variants={item}
-              className="lg:col-span-2 bg-secondary rounded-xl border border-white/10 p-5 md:p-6 shadow-card-dark"
-            >
-              <div className="flex items-center justify-between gap-3 mb-4">
-                <h2 className="text-lg md:text-xl font-semibold text-primary">
-                  Get started as a merchant
-                </h2>
-                <span className="inline-flex items-center rounded-full bg-tertiary/70 px-3 py-1 text-xs font-medium text-secondary border border-white/5">
-                  Step 1 of 3
-                </span>
-              </div>
-
-              <div className="space-y-4 md:space-y-5">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-accent-green text-xs font-semibold text-white shadow-glow">
-                    1
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-primary mb-0.5">
-                      Connect your Base wallet
-                    </p>
-                    <p className="text-xs md:text-sm text-secondary">
-                      Use the <span className="font-medium text-primary">Become a Merchant</span>{' '}
-                      button in the header to connect a wallet on Base. This wallet will own your
-                      Merchant Vault.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-tertiary text-xs font-semibold text-primary border border-white/10">
-                    2
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-primary mb-0.5">
-                      Create your merchant profile
-                    </p>
-                    <p className="text-xs md:text-sm text-secondary">
-                      Add your business name, category, location, and contact details. This powers
-                      your onchain identity and future credit scoring.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-tertiary text-xs font-semibold text-primary border border-white/10">
-                    3
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-primary mb-0.5">
-                      Generate your QR & start accepting USDC
-                    </p>
-                    <p className="text-xs md:text-sm text-secondary">
-                      We’ll generate a unique QR linked to your Merchant Vault. Show it at checkout,
-                      get instant voice confirmation, and see every payment in your onchain ledger.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center rounded-full bg-accent-green px-5 py-2.5 text-xs md:text-sm font-medium text-white hover:bg-accent-green-hover transition-colors shadow-glow"
-                >
-                  Continue onboarding
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center rounded-full border border-white/15 bg-transparent px-5 py-2.5 text-xs md:text-sm font-medium text-primary hover:bg-white/5 transition-colors"
-                >
-                  Preview dashboard
-                </button>
-              </div>
-            </motion.div>
-
-            {/* Status + highlights */}
-            <motion.div
-              variants={item}
-              className="space-y-4"
-            >
-              <div className="bg-secondary rounded-xl border border-white/10 p-4 md:p-5 shadow-card-dark">
-                <p className="text-xs font-medium text-secondary mb-1">
-                  Onboarding status
-                </p>
-                <p className="text-base md:text-lg font-semibold text-primary mb-2">
-                  Merchant setup in progress
-                </p>
-                <div className="w-full h-2 rounded-full bg-tertiary overflow-hidden mb-3">
-                  <div className="h-full w-1/3 bg-accent-green rounded-full" />
-                </div>
-                <ul className="space-y-1.5 text-xs text-secondary">
-                  <li className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-accent-green" />
-                    Home & branding ready
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-yellow-400" />
-                    Merchant onboarding flow — in progress
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
-                    Live payment feed & credit score — coming next
-                  </li>
-                </ul>
-              </div>
-
-              <div className="bg-secondary rounded-xl border border-white/10 p-4 md:p-5 shadow-card-dark">
-                <p className="text-xs font-medium text-secondary mb-1">
-                  What you’ll see here
-                </p>
-                <ul className="space-y-1.5 text-xs md:text-sm text-secondary">
-                  <li>• Live USDC balance and savings split</li>
-                  <li>• Instant payment feed with voice confirmations</li>
-                  <li>• Credit score, tier, and lending eligibility</li>
-                  <li>• Exportable onchain revenue statements</li>
-                </ul>
-              </div>
-            </motion.div>
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+          </svg>
+          Create QR code
+        </Link>
+      </motion.div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <motion.div
+          variants={item}
+          className="bg-secondary rounded-xl border border-white/10 p-5"
+        >
+          <p className="text-xs font-medium text-secondary mb-1">Liquid USDC</p>
+          <p className="text-2xl font-bold text-primary">0.00</p>
+        </motion.div>
+        <motion.div
+          variants={item}
+          className="bg-secondary rounded-xl border border-white/10 p-5"
+        >
+          <p className="text-xs font-medium text-secondary mb-1">Savings</p>
+          <p className="text-2xl font-bold text-accent-green">0.00</p>
+        </motion.div>
+        <motion.div
+          variants={item}
+          className="bg-secondary rounded-xl border border-white/10 p-5"
+        >
+          <p className="text-xs font-medium text-secondary mb-1">Credit score</p>
+          <div className="flex items-center gap-2">
+            <p className="text-2xl font-bold text-primary">—</p>
+            <span className="rounded-full bg-tertiary px-2 py-0.5 text-xs text-secondary border border-white/10">Seed</span>
           </div>
         </motion.div>
       </div>
-    </div>
+
+      {/* Live payment feed */}
+      <motion.div variants={item} className="bg-secondary rounded-xl border border-white/10 p-5">
+        <h2 className="text-lg font-semibold text-primary mb-3">Live payment feed</h2>
+        <div className="rounded-lg bg-tertiary/50 border border-white/5 overflow-hidden">
+          <div className="max-h-40 overflow-y-auto">
+            {FEED_PLACEHOLDER.map((row, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between gap-4 px-4 py-2.5 border-b border-white/5 last:border-0 text-sm"
+              >
+                <span className="text-secondary">Payment confirmed.</span>
+                <span>
+                  <span className="text-accent-green font-semibold">{row.amount} USDC</span>
+                  <span className="text-secondary"> received · Today: </span>
+                  <span className="text-accent-green font-semibold">{row.total} USDC</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <p className="text-xs text-secondary mt-2">Updates in real time when payments land on Base.</p>
+      </motion.div>
+
+      {/* Onboarding CTA */}
+      <motion.div variants={item} className="bg-secondary rounded-xl border border-white/10 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold text-primary">New merchant?</h2>
+          <p className="text-sm text-secondary">Connect wallet, create profile, and get your QR.</p>
+        </div>
+        <div className="flex gap-3">
+          <Link
+            to="/register"
+            className="rounded-full bg-accent-green px-5 py-2.5 text-sm font-medium text-white hover:bg-accent-green-hover transition-colors"
+          >
+            Register
+          </Link>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
