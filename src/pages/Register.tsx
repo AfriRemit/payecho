@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useActiveAccount } from 'thirdweb/react';
 import { JsonRpcProvider } from 'ethers';
-import { BASE_SEPOLIA_CONFIG } from '../lib/chains';
+import { BASE_SEPOLIA_RPC } from '../lib/base-rpc';
 
 const CATEGORIES = [
   'Retail',
@@ -35,7 +35,7 @@ const Register: React.FC = () => {
       return;
     }
     let cancelled = false;
-    const provider = new JsonRpcProvider(BASE_SEPOLIA_CONFIG.rpcUrl);
+    const provider = new JsonRpcProvider(BASE_SEPOLIA_RPC);
     provider
       .lookupAddress(account.address)
       .then((name) => { if (!cancelled) setBaseName(name || null); })

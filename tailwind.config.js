@@ -22,10 +22,10 @@ export default {
           tertiary: '#E9ECEF',       // Input fields, borders
           quaternary: '#DEE2E6',     // Hover states
         },
-        // Accent colors (consistent across themes)
+        // Accent colors (matches index.css CSS vars)
         accent: {
-          green: '#00C853',          // Primary green
-          'green-hover': '#00E676',  // Green hover state
+          green: '#10b981',
+          'green-hover': '#34d399',
           red: '#FF5252',            // Negative changes
           'red-hover': '#FF1744',    // Red hover state
         },

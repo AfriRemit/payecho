@@ -1,70 +1,56 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import ThemeToggle from './ThemeToggle';
-import { createThirdwebClient } from 'thirdweb';
-import { ConnectButton } from 'thirdweb/react';
+import { ThemeToggle } from './ui/ThemeToggle';
+import { WalletButton } from './web3/WalletButton';
 
-const Header: React.FC = () => {
+export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const client = createThirdwebClient({
-    clientId: import.meta.env.VITE_THIRDWEB_CLIENT_ID || 'fallback-client-id'
-  });
-
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
-
   return (
-    <header className="sticky top-0 z-50 px-6 py-4 bg-secondary/95 backdrop-blur-sm border-b" style={{ borderColor: 'var(--bg-tertiary)' }}>
+    <header
+      className="sticky top-0 z-50 px-6 py-4 bg-secondary/95 backdrop-blur-sm border-b"
+      style={{ borderColor: 'var(--bg-tertiary)' }}
+    >
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between">
-          {/* Logo and Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             <Link to="/" className="flex items-center space-x-3 focus:outline-none">
-              <img src="/assets/Remifi logo.svg" alt="Payecho Logo" className="w-8 h-8" />
-              <h1 className="text-2xl font-bold text-primary">Payecho</h1>
+              <img src="/assets/Remifi logo.svg" alt="PayEcho Logo" className="w-8 h-8" />
+              <h1 className="text-2xl font-bold text-primary">PayEcho</h1>
             </Link>
-            
             <nav className="flex items-center space-x-8">
-              <NavLink 
+              <NavLink
                 to="/dashboard"
-                className={({ isActive }) => `text-primary hover:text-accent-green transition-colors duration-200 ${isActive ? 'text-accent-green' : ''}`}
+                className={({ isActive }) =>
+                  `text-primary hover:text-accent-green transition-colors duration-200 ${isActive ? 'text-accent-green' : ''}`
+                }
               >
                 Dashboard
+              </NavLink>
+              <NavLink
+                to="/pay"
+                className={({ isActive }) =>
+                  `text-primary hover:text-accent-green transition-colors duration-200 ${isActive ? 'text-accent-green' : ''}`
+                }
+              >
+                Pay
               </NavLink>
             </nav>
           </div>
 
-          {/* Mobile Logo */}
-          <Link
-            to="/"
-            className="md:hidden flex items-center space-x-3 focus:outline-none"
-          >
-            <img src="/assets/Remifi logo.svg" alt="Payecho Logo" className="w-8 h-8" />
-            <h1 className="text-2xl font-bold text-primary">Payecho</h1>
+          <Link to="/" className="md:hidden flex items-center space-x-3 focus:outline-none">
+            <img src="/assets/Remifi logo.svg" alt="PayEcho Logo" className="w-8 h-8" />
+            <h1 className="text-2xl font-bold text-primary">PayEcho</h1>
           </Link>
 
-          {/* Desktop Right side actions */}
           <div className="hidden md:flex items-center space-x-4">
             <ThemeToggle />
-            <ConnectButton 
-              client={client}
-              connectButton={{
-                label: 'Become a Merchant',
-                className: '!bg-accent-green !hover:bg-accent-green-hover !text-white !rounded-full !px-6 !py-2 !font-medium'
-              }}
-              detailsButton={{
-                className: '!bg-accent-green !text-white !rounded-full !px-4 !py-2 !font-medium'
-              }}
-              switchButton={{ label: 'Switch Network' }}
-            />
+            <WalletButton />
           </div>
 
-          {/* Mobile Menu Button */}
-          <button 
-            onClick={toggleMenu}
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="md:hidden p-2 text-primary hover:text-accent-green transition-colors duration-200"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -77,10 +63,9 @@ const Header: React.FC = () => {
           </button>
         </div>
 
-        {/* Mobile Menu */}
         <AnimatePresence>
           {isMenuOpen && (
-            <motion.div 
+            <motion.div
               className="mt-4 pt-4 border-t md:hidden"
               style={{ borderColor: 'var(--bg-tertiary)' }}
               initial={{ opacity: 0, height: 0 }}
@@ -89,31 +74,32 @@ const Header: React.FC = () => {
               transition={{ duration: 0.2 }}
             >
               <div className="space-y-4">
-                {/* Mobile Navigation Links */}
                 <nav className="space-y-4">
-                  <NavLink 
+                  <NavLink
                     to="/dashboard"
                     onClick={() => setIsMenuOpen(false)}
-                    className={({ isActive }) => `block text-left w-full text-primary hover:text-accent-green transition-colors duration-200 py-2 ${isActive ? 'text-accent-green' : ''}`}
+                    className={({ isActive }) =>
+                      `block text-left w-full text-primary hover:text-accent-green transition-colors duration-200 py-2 ${isActive ? 'text-accent-green' : ''}`
+                    }
                   >
                     Dashboard
                   </NavLink>
+                  <NavLink
+                    to="/pay"
+                    onClick={() => setIsMenuOpen(false)}
+                    className={({ isActive }) =>
+                      `block text-left w-full text-primary hover:text-accent-green transition-colors duration-200 py-2 ${isActive ? 'text-accent-green' : ''}`
+                    }
+                  >
+                    Pay
+                  </NavLink>
                 </nav>
-                
-                {/* Mobile Right side actions */}
-                <div className="flex items-center justify-between pt-4 border-t" style={{ borderColor: 'var(--bg-tertiary)' }}>
+                <div
+                  className="flex items-center justify-between pt-4 border-t"
+                  style={{ borderColor: 'var(--bg-tertiary)' }}
+                >
                   <ThemeToggle />
-                  <ConnectButton 
-                    client={client}
-                    connectButton={{
-                      label: 'Become a Merchant',
-                      className: '!bg-accent-green !hover:bg-accent-green-hover !text-white !rounded-full !px-6 !py-2 !font-medium'
-                    }}
-                    detailsButton={{
-                      className: '!bg-accent-green !text-white !rounded-full !px-4 !py-2 !font-medium'
-                    }}
-                    switchButton={{ label: 'Switch Network' }}
-                  />
+                  <WalletButton />
                 </div>
               </div>
             </motion.div>
@@ -122,6 +108,4 @@ const Header: React.FC = () => {
       </div>
     </header>
   );
-};
-
-export default Header;
+}

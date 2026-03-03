@@ -1,4 +1,3 @@
-
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Header from './components/Header';
@@ -8,10 +7,12 @@ import FeaturesSection from './components/home/FeaturesSection';
 import SecuritySection from './components/home/SecuritySection';
 import FAQSection from './components/home/FAQSection';
 import DashboardLayout from './layouts/DashboardLayout';
+import ConnectPage from './pages/Connect';
 import DashboardPage from './pages/Dashboard';
 import RegisterPage from './pages/Register';
 import RegisterSuccessPage from './pages/RegisterSuccess';
 import QRPage from './pages/dashboard/QR';
+import PayPage from './pages/dashboard/Pay';
 import TransactionsPage from './pages/dashboard/Transactions';
 import AnalyticsPage from './pages/dashboard/Analytics';
 import SavingsPage from './pages/dashboard/Savings';
@@ -42,8 +43,10 @@ function App() {
         <Header />
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/connect" element={<ConnectPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/register/success" element={<RegisterSuccessPage />} />
+          <Route path="/pay" element={<PayPage />} />
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<DashboardPage />} />
             <Route path="qr" element={<QRPage />} />

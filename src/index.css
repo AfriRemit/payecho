@@ -1,5 +1,5 @@
-/* Import Inter font */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+/* Plus Jakarta Sans — distinctive, modern fintech */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -8,18 +8,20 @@
 /* CSS Custom Properties for Theme Colors */
 :root {
   /* Dark mode (default) */
-  --bg-primary: #121212;
-  --bg-secondary: #1E1E1E;
-  --bg-tertiary: #2C2C2C;
-  --bg-quaternary: #3A3A3A;
-  --text-primary: #FFFFFF;
-  --text-secondary: #A0A0A0;
-  --accent-green: #00B37E;
-  --accent-green-hover: #00B37E;
-  --accent-red: #FF5252;
-  --accent-red-hover: #FF1744;
-  --metallic-silver: #C0C0C0;
-  --metallic-silver-dark: #A0A0A0;
+  --bg-primary: #0a0e14;
+  --bg-secondary: #141a23;
+  --bg-tertiary: #1e2836;
+  --bg-quaternary: #2a3544;
+  --text-primary: #f0f4f8;
+  --text-secondary: #94a3b8;
+  --accent-green: #10b981;
+  --accent-green-hover: #34d399;
+  --accent-glow: rgba(16, 185, 129, 0.15);
+  --accent-gold: #f59e0b;
+  --accent-red: #ef4444;
+  --accent-red-hover: #f87171;
+  --metallic-silver: #cbd5e1;
+  --metallic-silver-dark: #94a3b8;
 }
 
 /* Light mode overrides - Binance style */
@@ -41,8 +43,8 @@
 }
 
 html {
-  font-family: 'Inter', system-ui, sans-serif;
-  line-height: 1.5;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  line-height: 1.6;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -102,6 +104,10 @@ body {
   .bg-accent-green {
     background-color: var(--accent-green);
   }
+
+  .bg-accent-green-hover {
+    background-color: var(--accent-green-hover);
+  }
   
   .accent-red {
     color: var(--accent-red);
@@ -136,6 +142,24 @@ body {
   
   .animate-slide {
     animation: slide 8s linear infinite;
+  }
+
+  .card-glow {
+    box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.1), 0 4px 24px -4px rgba(0, 0, 0, 0.4);
+  }
+
+  .card-glow-hover:hover {
+    box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2), 0 8px 32px -8px rgba(16, 185, 129, 0.12);
+  }
+
+  .gradient-border {
+    background: linear-gradient(var(--bg-secondary), var(--bg-secondary)) padding-box,
+      linear-gradient(135deg, rgba(16, 185, 129, 0.3), transparent, rgba(16, 185, 129, 0.1)) border-box;
+    border: 1px solid transparent;
+  }
+
+  .hero-gradient {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, transparent 50%, rgba(16, 185, 129, 0.03) 100%);
   }
 }
 

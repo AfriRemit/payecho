@@ -1,19 +1,28 @@
-import React from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { CreditScoreGauge } from '../../components/merchant/CreditScoreGauge';
+import { ScoreFactors } from '../../components/merchant/ScoreFactors';
+import { MerchantNFT } from '../../components/merchant/MerchantNFT';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 
-const TIERS = ['Seed', 'Bronze', 'Silver', 'Gold', 'Platinum'] as const;
-const FACTORS = [
-  { name: 'Revenue stability', weight: '25%', value: '—' },
-  { name: 'Transaction frequency', weight: '20%', value: '—' },
-  { name: 'Revenue growth', weight: '20%', value: '—' },
-  { name: 'Account age', weight: '15%', value: '—' },
-  { name: 'Loan repayment', weight: '15%', value: '—' },
-  { name: 'Avg transaction size', weight: '5%', value: '—' },
+const SCORE_HISTORY = [
+  { day: 'D1', score: 0 },
+  { day: 'D30', score: 150 },
+  { day: 'D60', score: 220 },
+  { day: 'D90', score: 280 },
 ];
 
-const Identity: React.FC = () => {
-  const score = 0;
-  const tier = TIERS[0];
+export default function Identity() {
+  const [score] = useState(0);
+  const tier = 'Seed';
 
   return (
     <motion.div
@@ -31,62 +40,45 @@ const Identity: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-secondary rounded-xl border border-white/10 p-6">
           <h2 className="text-lg font-semibold text-primary mb-4">Credit score</h2>
-          <div className="flex items-center gap-6">
-            <div className="relative w-32 h-32">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                <path
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  fill="none"
-                  stroke="var(--bg-tertiary)"
-                  strokeWidth="2"
-                />
-                <path
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  fill="none"
-                  stroke="var(--accent-green)"
-                  strokeWidth="2"
-                  strokeDasharray={`${score / 10}, 100`}
-                  strokeLinecap="round"
-                />
-              </svg>
-            </div>
-            <div>
-              <p className="text-3xl font-bold text-primary">{score}</p>
-              <p className="text-sm text-secondary">out of 1000</p>
-              <span className="inline-block mt-2 rounded-full bg-tertiary px-3 py-1 text-xs font-medium text-primary border border-white/10">
-                {tier}
-              </span>
-            </div>
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            <CreditScoreGauge score={score} size={140} showTier />
           </div>
           <p className="text-xs text-secondary mt-4">Score updates every 24h from onchain revenue data.</p>
         </div>
         <div className="bg-secondary rounded-xl border border-white/10 p-6">
           <h2 className="text-lg font-semibold text-primary mb-4">Score factors</h2>
-          <ul className="space-y-2">
-            {FACTORS.map((f) => (
-              <li key={f.name} className="flex justify-between items-center text-sm">
-                <span className="text-secondary">{f.name}</span>
-                <span className="text-primary font-medium">{f.value}</span>
-              </li>
-            ))}
-          </ul>
+          <ScoreFactors />
         </div>
       </div>
 
       <div className="bg-secondary rounded-xl border border-white/10 p-6">
-        <h2 className="text-lg font-semibold text-primary mb-4">Merchant NFT</h2>
-        <div className="flex items-center gap-4">
-          <div className="w-24 h-24 rounded-xl bg-tertiary border border-white/10 flex items-center justify-center text-secondary text-xs">
-            NFT
-          </div>
-          <div>
-            <p className="text-primary font-medium">Reputation token</p>
-            <p className="text-sm text-secondary">Tier badge and metadata update when score crosses tier.</p>
-          </div>
+        <h2 className="text-lg font-semibold text-primary mb-4">90-day score trend</h2>
+        <div className="h-40 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={SCORE_HISTORY}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--bg-tertiary)" opacity={0.5} />
+              <XAxis dataKey="day" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
+              <YAxis domain={[0, 1000]} tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '8px',
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="score"
+                stroke="var(--accent-green)"
+                strokeWidth={2}
+                dot={{ fill: 'var(--accent-green)' }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </div>
+
+      <MerchantNFT tier={tier} score={score} nextTierScore={300} />
     </motion.div>
   );
-};
-
-export default Identity;
+}

@@ -1,64 +1,40 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
-type MetaMaskProvider = {
-  isMetaMask?: boolean;
-  request: (args: { method: string; params?: unknown }) => Promise<unknown>;
-};
-
-export async function addTokenToMetamask(tokenAddress:any, tokenSymbol:any, tokenDecimals:any) {
-    if (typeof window === 'undefined') {
-      console.error("Metamask is not detected or not installed.");
-      return;
-    }
-
-    const ethereum = window.ethereum as MetaMaskProvider | undefined;
-    if (!ethereum || !ethereum.isMetaMask) {
-      console.error("Metamask is not detected or not installed.");
-      return;
-    }
-  
-    const params = {
-      method: 'wallet_watchAsset',
-      params: {
-        type: 'ERC20',
-        options: {
-          address: tokenAddress,
-          symbol: tokenSymbol,
-          decimals: tokenDecimals,
-          
-        },
-      },
-    };
-  
-    try {
-      await ethereum.request(params);
-      console.log(`Token ${tokenSymbol} added to Metamask successfully.`);
-    } catch (error) {
-      console.error(`Failed to add token to Metamask: ${error}`);
-    }
-  }
-
-
-
-  export function shortenAddress(address: string, chars = 4): string {
+export function shortenAddress(address: string, chars = 4): string {
   if (!address || address.length < chars * 2 + 2) return address;
-  return `${address.slice(0, chars + 2)}...${address.slice(-chars)}`;
+  return `${address.slice(0, chars + 2)}…${address.slice(-chars)}`;
 }
 
-export function roundToSevenDecimalPlaces(num: any) {
-  return Math.round(num * 10000000) / 10000000;
+/** Format USDC amount (6 decimals) for display */
+export function formatUSDC(raw: string | number): string {
+  const n = typeof raw === 'string' ? parseFloat(raw) : raw;
+  if (Number.isNaN(n)) return '0.00';
+  return (n / 1e6).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export function roundToTwoDecimalPlaces(num: any) {
-  return Math.round(num * 100) / 100;
+/** Format date for display */
+export function formatDate(timestamp: number | Date): string {
+  const d = typeof timestamp === 'number' ? new Date(timestamp * 1000) : timestamp;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export function roundToFiveDecimalPlaces(num: any) {
-  return Math.round(num * 100000) / 100000;
+/** Convert BPS to percentage string */
+export function bpsToPercent(bps: number): string {
+  return `${(bps / 100).toFixed(1)}%`;
 }
 
+/** Credit tier from score (0–1000) per Masterplan */
+export type CreditTier = 'Seed' | 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
+
+export function tierFromScore(score: number): CreditTier {
+  if (score >= 850) return 'Platinum';
+  if (score >= 700) return 'Gold';
+  if (score >= 500) return 'Silver';
+  if (score >= 300) return 'Bronze';
+  return 'Seed';
+}
