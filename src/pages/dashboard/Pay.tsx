@@ -1,9 +1,59 @@
+import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { toast } from 'react-toastify';
+import { PayHeader } from '../../components/payment/PayHeader';
+import { AmountSection } from '../../components/payment/AmountSection';
+import { PaymentMethodSection } from '../../components/payment/PaymentMethodSection';
+import { ConfirmPaymentModal } from '../../components/payment/ConfirmPaymentModal';
+import { PaymentSettingsModal } from '../../components/payment/PaymentSettingsModal';
+import { PaymentSuccessModal } from '../../components/payment/PaymentSuccessModal';
+import type { PayMode, PayPayload, PaymentMethod } from '../../components/payment/types';
 
 /**
- * Customer payment screen — what customers see when they scan a merchant's QR code.
+ * Customer payment screen. PC: open /pay to pay to an address (enter vault + amount).
+ * Phone: scan QR → /pay?payload=... with vault + amount, then connect wallet and pay.
  */
 export default function PayPage() {
+  const [searchParams] = useSearchParams();
+  const [overrideAmount, setOverrideAmount] = useState('');
+  const [manualVaultAddress, setManualVaultAddress] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('wallet');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const parsed = useMemo<PayPayload | null>(() => {
+    const raw = searchParams.get('payload');
+    if (!raw) return null;
+    try {
+      const decoded = JSON.parse(decodeURIComponent(raw)) as PayPayload;
+      if (decoded.proto !== 'payecho') return null;
+      return decoded;
+    } catch {
+      return null;
+    }
+  }, [searchParams]);
+
+  const mode: PayMode = parsed?.mode ?? 'open';
+  const initialAmount = parsed?.amount ?? '';
+  const amount = mode === 'fixed' ? initialAmount : overrideAmount;
+  const vault = parsed?.vault ?? manualVaultAddress;
+
+  const handleRequestPay = () => {
+    if (!amount || paymentMethod !== 'wallet') return;
+    if (!parsed && !vault.trim()) return;
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmPay = () => {
+    setConfirmOpen(false);
+    // In the real app, this is where we will call the MerchantVault.acceptPayment()
+    // function on Base. For now we just confirm visually.
+    toast.success(`Payment of ${amount} USDC confirmed (demo only).`);
+    setSuccessOpen(true);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -11,46 +61,24 @@ export default function PayPage() {
       className="max-w-md mx-auto min-h-[60vh] flex flex-col justify-center px-4 py-8 sm:px-6"
     >
       <div className="bg-secondary rounded-2xl border border-white/10 overflow-hidden shadow-xl">
-        {/* Merchant info */}
-        <div className="bg-gradient-to-br from-accent-green/15 to-transparent px-6 py-5 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-accent-green/20 flex items-center justify-center">
-              <svg className="w-6 h-6 text-accent-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-primary">Merchant Store</h2>
-              <p className="text-xs text-secondary">Pay with USDC on Base</p>
-            </div>
-          </div>
-        </div>
+        <PayHeader parsed={parsed} onToggleSettings={() => setSettingsOpen((open) => !open)} />
 
-        {/* Amount */}
-        <div className="px-6 py-6">
-          <label className="block text-sm font-medium text-secondary mb-2">Amount (USDC)</label>
-          <div className="flex items-center gap-3 rounded-xl bg-tertiary border border-white/10 px-4 py-4">
-            <span className="text-2xl font-bold text-primary">25.00</span>
-            <span className="text-secondary text-sm">USDC</span>
-          </div>
-        </div>
+        <AmountSection
+          mode={mode}
+          amount={amount}
+          vault={vault}
+          onChangeAmount={setOverrideAmount}
+          vaultEditable={!parsed}
+          onVaultChange={setManualVaultAddress}
+        />
 
-        {/* Connect & pay */}
-        <div className="px-6 pb-6">
-          <div className="rounded-xl border-2 border-dashed border-white/20 bg-white/5 px-6 py-8 text-center">
-            <svg className="w-12 h-12 text-secondary mx-auto mb-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3" />
-            </svg>
-            <p className="text-sm font-medium text-primary mb-1">Connect wallet to pay</p>
-            <p className="text-xs text-secondary">Base network · USDC required</p>
-            <button
-              type="button"
-              disabled
-              className="mt-4 w-full rounded-xl bg-accent-green/50 px-6 py-3 text-sm font-semibold text-white/80 cursor-not-allowed"
-            >
-              Pay 25.00 USDC
-            </button>
-          </div>
+        <div className="px-6 pb-6 space-y-4">
+          <PaymentMethodSection
+            paymentMethod={paymentMethod}
+            amount={amount}
+            onChangePaymentMethod={setPaymentMethod}
+            onRequestPay={handleRequestPay}
+          />
         </div>
 
         {/* Footer */}
@@ -62,6 +90,27 @@ export default function PayPage() {
           <span className="text-[10px] text-secondary">PayEcho Protocol</span>
         </div>
       </div>
+
+      <ConfirmPaymentModal
+        open={confirmOpen}
+        amount={amount}
+        vault={vault}
+        onConfirm={handleConfirmPay}
+        onCancel={() => setConfirmOpen(false)}
+      />
+
+      <PaymentSettingsModal
+        open={settingsOpen}
+        paymentMethod={paymentMethod}
+        onChangePaymentMethod={setPaymentMethod}
+        onClose={() => setSettingsOpen(false)}
+      />
+
+      <PaymentSuccessModal
+        open={successOpen}
+        amount={amount}
+        onClose={() => setSuccessOpen(false)}
+      />
     </motion.div>
   );
 }

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Footer: React.FC = () => {
   return (
@@ -16,21 +17,76 @@ const Footer: React.FC = () => {
             <div>
               <h4 className="text-lg font-semibold text-primary mb-4">Quick Link</h4>
               <ul className="space-y-2">
-                <li><a href="#" className="text-secondary hover:text-accent-green transition-colors duration-200">Home</a></li>
-                <li><a href="#" className="text-secondary hover:text-accent-green transition-colors duration-200">Products</a></li>
-                <li><a href="#" className="text-secondary hover:text-accent-green transition-colors duration-200">About</a></li>
-                <li><a href="#" className="text-secondary hover:text-accent-green transition-colors duration-200">Features</a></li>
-                <li><a href="#" className="text-secondary hover:text-accent-green transition-colors duration-200">Contact</a></li>
+                <li>
+                  <Link to="/" className="text-secondary hover:text-accent-green transition-colors duration-200">
+                    Home
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/products" className="text-secondary hover:text-accent-green transition-colors duration-200">
+                    Products
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/about" className="text-secondary hover:text-accent-green transition-colors duration-200">
+                    About
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/features" className="text-secondary hover:text-accent-green transition-colors duration-200">
+                    Features
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/contact" className="text-secondary hover:text-accent-green transition-colors duration-200">
+                    Contact
+                  </Link>
+                </li>
               </ul>
             </div>
             <div>
               <h4 className="text-lg font-semibold text-primary mb-4">Resources</h4>
               <ul className="space-y-2">
-                <li><a href="#" className="text-secondary hover:text-accent-green transition-colors duration-200">Download Whitepaper</a></li>
-                <li><a href="#" className="text-secondary hover:text-accent-green transition-colors duration-200">Smart Token</a></li>
-                <li><a href="#" className="text-secondary hover:text-accent-green transition-colors duration-200">Blockchain Explorer</a></li>
-                <li><a href="#" className="text-secondary hover:text-accent-green transition-colors duration-200">Crypto API</a></li>
-                <li><a href="#" className="text-secondary hover:text-accent-green transition-colors duration-200">Interest</a></li>
+                <li>
+                  <Link
+                    to="/resources/whitepaper"
+                    className="text-secondary hover:text-accent-green transition-colors duration-200"
+                  >
+                    Download Whitepaper
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/resources/smart-token"
+                    className="text-secondary hover:text-accent-green transition-colors duration-200"
+                  >
+                    Smart Token
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/resources/explorer"
+                    className="text-secondary hover:text-accent-green transition-colors duration-200"
+                  >
+                    Blockchain Explorer
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/resources/crypto-api"
+                    className="text-secondary hover:text-accent-green transition-colors duration-200"
+                  >
+                    Crypto API
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/resources/interest"
+                    className="text-secondary hover:text-accent-green transition-colors duration-200"
+                  >
+                    Interest
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>

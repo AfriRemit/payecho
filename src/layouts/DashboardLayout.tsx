@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -11,6 +11,7 @@ import {
   Mic,
 } from 'lucide-react';
 import { NetworkGuard } from '../components/web3/NetworkGuard';
+import { useOnboarding } from '../contexts/OnboardingContext';
 
 const SIDEBAR_LINKS = [
   { to: '/dashboard', label: 'Dashboard', end: true, Icon: LayoutDashboard },
@@ -57,6 +58,13 @@ function SidebarNav({ onLinkClick }: { onLinkClick?: () => void }) {
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { isOnboarded } = useOnboarding();
+
+  // Until the backend is wired, we use onboarding state to decide if the
+  // merchant should be allowed into the dashboard flow.
+  if (!isOnboarded) {
+    return <Navigate to="/register" replace />;
+  }
 
   return (
     <NetworkGuard>

@@ -23,7 +23,7 @@ export function useQRCode(vaultAddress: string, mode: 'open' | 'fixed', fixedAmo
       mode,
       amount: mode === 'fixed' && fixedAmount ? fixedAmount : null,
     }),
-    [vaultAddress, mode, fixedAmount]
+    [vaultAddress, mode, fixedAmount],
   );
 
   useEffect(() => {
@@ -31,14 +31,21 @@ export function useQRCode(vaultAddress: string, mode: 'open' | 'fixed', fixedAmo
     const generate = async () => {
       try {
         setError(null);
-        const text = JSON.stringify(payload);
+        const configuredOrigin = import.meta.env.VITE_PUBLIC_APP_URL as string | undefined;
+        const origin =
+          configuredOrigin && configuredOrigin.length > 0
+            ? configuredOrigin.replace(/\/+$/, '')
+            : typeof window !== 'undefined' && window.location
+              ? window.location.origin
+              : 'https://app.payecho.xyz';
+        const text = `${origin}/pay?payload=${encodeURIComponent(JSON.stringify(payload))}`;
         const url = await QRCode.toDataURL(text, {
           margin: 1,
           width: 512,
           errorCorrectionLevel: 'M',
         });
         if (!cancelled) setQrDataUrl(url);
-      } catch (e) {
+      } catch {
         if (!cancelled) {
           setError('Could not generate QR');
           setQrDataUrl(null);

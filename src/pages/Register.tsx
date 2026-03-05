@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useActiveAccount } from 'thirdweb/react';
 import { JsonRpcProvider } from 'ethers';
 import { BASE_SEPOLIA_RPC } from '../lib/base-rpc';
+import { useOnboarding } from '../contexts/OnboardingContext';
 
 const CATEGORIES = [
   'Retail',
@@ -18,6 +19,7 @@ const LANGUAGES = ['English', 'Twi', 'French', 'Swahili'];
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
+  const { completeOnboarding } = useOnboarding();
   const account = useActiveAccount();
   const [baseName, setBaseName] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -45,6 +47,8 @@ const Register: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // In the real app this will POST to the backend to create the RewardBank account.
+    completeOnboarding();
     navigate('/register/success');
   };
 
