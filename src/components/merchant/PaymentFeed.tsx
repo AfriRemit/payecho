@@ -83,7 +83,7 @@ export function PaymentFeed({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="flex items-center justify-between gap-4 px-4 py-2.5 border-b border-white/5 last:border-0 text-sm"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 px-4 py-2.5 border-b border-white/5 last:border-0 text-sm"
               >
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <span className="text-secondary">Payment confirmed</span>
@@ -93,8 +93,8 @@ export function PaymentFeed({
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span>
+                <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 sm:gap-3 pt-1 sm:pt-0">
+                  <span className="text-right sm:text-left">
                     <span className="text-accent-green font-semibold">{row.amount} USDC</span>
                     <span className="text-secondary"> · Today: </span>
                     <span className="text-accent-green font-semibold">{row.total} USDC</span>

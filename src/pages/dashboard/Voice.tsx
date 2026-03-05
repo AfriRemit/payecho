@@ -72,19 +72,19 @@ export default function Voice() {
         <div className="bg-secondary rounded-xl border border-white/10 p-6 space-y-5">
           <h2 className="text-lg font-semibold text-primary">Quiet hours</h2>
           <p className="text-sm text-secondary">No voice announcements during this period.</p>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <input
               type="time"
               value={quietStart}
               onChange={(e) => setQuietStart(e.target.value)}
-              className="rounded-xl bg-tertiary border border-white/10 px-4 py-2.5 text-primary text-sm focus:outline-none focus:ring-2 focus:ring-accent-green/50"
+              className="w-full sm:w-auto rounded-xl bg-tertiary border border-white/10 px-4 py-2.5 text-primary text-sm focus:outline-none focus:ring-2 focus:ring-accent-green/50"
             />
-            <span className="text-secondary">to</span>
+            <span className="text-secondary text-center sm:text-left">to</span>
             <input
               type="time"
               value={quietEnd}
               onChange={(e) => setQuietEnd(e.target.value)}
-              className="rounded-xl bg-tertiary border border-white/10 px-4 py-2.5 text-primary text-sm focus:outline-none focus:ring-2 focus:ring-accent-green/50"
+              className="w-full sm:w-auto rounded-xl bg-tertiary border border-white/10 px-4 py-2.5 text-primary text-sm focus:outline-none focus:ring-2 focus:ring-accent-green/50"
             />
           </div>
           <button

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { NavLink, Outlet, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -12,6 +11,9 @@ import {
 } from 'lucide-react';
 import { NetworkGuard } from '../components/web3/NetworkGuard';
 import { useOnboarding } from '../contexts/OnboardingContext';
+import { useDashboardSidebar } from '../contexts/DashboardSidebarContext';
+import { ThemeToggle } from '../components/ui/ThemeToggle';
+import { WalletButton } from '../components/web3/WalletButton';
 
 const SIDEBAR_LINKS = [
   { to: '/dashboard', label: 'Dashboard', end: true, Icon: LayoutDashboard },
@@ -57,7 +59,9 @@ function SidebarNav({ onLinkClick }: { onLinkClick?: () => void }) {
 }
 
 export default function DashboardLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const dashboardSidebar = useDashboardSidebar();
+  const sidebarOpen = dashboardSidebar?.sidebarOpen ?? false;
+  const setSidebarOpen = dashboardSidebar?.setSidebarOpen ?? (() => {});
   const { isOnboarded } = useOnboarding();
 
   // Until the backend is wired, we use onboarding state to decide if the
@@ -76,19 +80,6 @@ export default function DashboardLayout() {
           </div>
         </aside>
 
-        <div className="lg:hidden fixed top-16 left-0 right-0 z-40 px-4 py-2 bg-secondary/95 border-b border-white/10 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="flex items-center gap-2 text-primary text-sm font-medium"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-            Menu
-          </button>
-        </div>
-
         <AnimatePresence>
           {sidebarOpen && (
             <>
@@ -104,9 +95,16 @@ export default function DashboardLayout() {
                 animate={{ x: 0 }}
                 exit={{ x: '-100%' }}
                 transition={{ type: 'tween', duration: 0.2 }}
-                className="fixed inset-y-0 left-0 z-50 w-64 bg-secondary border-r border-white/10 pt-28 pb-6 lg:hidden"
+                className="fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-secondary border-r border-white/10 pt-28 pb-6 lg:hidden"
               >
                 <SidebarNav onLinkClick={() => setSidebarOpen(false)} />
+                <div className="px-3 pt-4 mt-auto border-t border-white/10 space-y-3 lg:hidden">
+                  <div className="flex items-center justify-between">
+                    <ThemeToggle />
+                    <WalletButton />
+                  </div>
+                  <p className="text-xs text-secondary">Base · USDC</p>
+                </div>
               </motion.aside>
             </>
           )}

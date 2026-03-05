@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { OnboardingProvider } from './contexts/OnboardingContext';
+import { DashboardSidebarProvider } from './contexts/DashboardSidebarContext';
 import Header from './components/Header';
 import HeroSection from './components/home/HeroSection';
 import RatesSection from './components/home/RatesSection';
@@ -52,8 +53,9 @@ function App() {
     <ThemeProvider>
       <OnboardingProvider>
         <div className="min-h-screen bg-primary text-primary transition-colors duration-300">
-          <Header />
-          <Routes>
+          <DashboardSidebarProvider>
+            <Header />
+            <Routes>
             <Route path="/" element={<Home />} />
 
             <Route path="/products" element={<ProductsPage />} />
@@ -83,9 +85,10 @@ function App() {
               <Route path="voice" element={<VoicePage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-          <ToastContainer position="top-right" autoClose={4000} hideProgressBar newestOnTop closeOnClick />
-          {isHomePage && <Footer />}
+            </Routes>
+            <ToastContainer position="top-right" autoClose={4000} hideProgressBar newestOnTop closeOnClick />
+            {isHomePage && <Footer />}
+          </DashboardSidebarProvider>
         </div>
       </OnboardingProvider>
     </ThemeProvider>

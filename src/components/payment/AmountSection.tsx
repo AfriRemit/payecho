@@ -36,21 +36,21 @@ export function AmountSection({
         {mode === 'fixed' && amount ? ' · fixed by merchant' : ''}
       </label>
       {mode === 'fixed' ? (
-        <div className="flex items-center gap-3 rounded-xl bg-tertiary border border-white/10 px-4 py-4">
-          <span className="text-2xl font-bold text-primary">{amount || '—'}</span>
-          <span className="text-secondary text-sm">USDC</span>
+        <div className="flex items-center gap-3 rounded-xl bg-tertiary border border-white/10 px-4 py-4 overflow-hidden">
+          <span className="text-2xl font-bold text-primary min-w-0 truncate">{amount || '—'}</span>
+          <span className="text-secondary text-sm shrink-0">USDC</span>
         </div>
       ) : (
-        <div className="flex items-center gap-3 rounded-xl bg-tertiary border border-white/10 px-4 py-3">
+        <div className="flex items-center gap-3 rounded-xl bg-tertiary border border-white/10 px-4 py-3 overflow-hidden">
           <input
             type="text"
             inputMode="decimal"
             value={amount}
             onChange={(e) => onChangeAmount(e.target.value)}
             placeholder="Enter amount"
-            className="flex-1 bg-transparent outline-none text-primary text-xl font-semibold"
+            className="min-w-0 flex-1 bg-transparent outline-none text-primary text-xl font-semibold"
           />
-          <span className="text-secondary text-sm">USDC</span>
+          <span className="text-secondary text-sm shrink-0">USDC</span>
         </div>
       )}
       {vault ? (

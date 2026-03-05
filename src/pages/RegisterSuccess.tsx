@@ -3,8 +3,6 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 const RegisterSuccess: React.FC = () => {
-  const vaultAddress = '0x0000...0000'; // Placeholder
-
   return (
     <main className="min-h-[calc(100vh-5rem)] flex items-center justify-center px-4 py-12">
       <motion.div
@@ -29,20 +27,8 @@ const RegisterSuccess: React.FC = () => {
             Merchant Vault deployed
           </h1>
           <p className="text-secondary text-sm mb-6">
-            Your unique vault is on Base. Share your QR at checkout to start accepting USDC.
+            Your merchant profile is ready. Use your dashboard to manage payments and share your QR when you’re set up.
           </p>
-
-          {/* QR placeholder */}
-          <div className="bg-tertiary rounded-xl border border-white/10 p-6 mb-6 flex items-center justify-center min-h-[200px]">
-            <div className="w-40 h-40 rounded-lg bg-white/10 flex items-center justify-center text-secondary text-xs">
-              QR code
-            </div>
-          </div>
-
-          <div className="text-left bg-tertiary/50 rounded-lg px-4 py-3 mb-6">
-            <p className="text-xs text-secondary mb-1">Vault address (Base)</p>
-            <p className="font-mono text-sm text-primary break-all">{vaultAddress}</p>
-          </div>
 
           <ul className="text-left text-sm text-secondary space-y-2 mb-6">
             <li>• Go to Dashboard → QR to show full-screen QR or download PNG</li>

@@ -58,7 +58,7 @@ export default function PayPage() {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-md mx-auto min-h-[60vh] flex flex-col justify-center px-4 py-8 sm:px-6"
+      className="max-w-md mx-auto px-4 py-6 sm:px-6 sm:py-8"
     >
       <div className="bg-secondary rounded-2xl border border-white/10 overflow-hidden shadow-xl">
         <PayHeader parsed={parsed} onToggleSettings={() => setSettingsOpen((open) => !open)} />
