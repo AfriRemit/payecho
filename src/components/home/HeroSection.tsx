@@ -1,6 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { setPostLoginRedirect } from '../lib/postLoginRedirect';
 
 const VOICE_CONFIRMATIONS = [
   { amount: '25', total: '120' },
@@ -14,6 +16,18 @@ const VOICE_CONFIRMATIONS = [
 const SCROLL_ITEMS = [...VOICE_CONFIRMATIONS, ...VOICE_CONFIRMATIONS, ...VOICE_CONFIRMATIONS];
 
 const HeroSection: React.FC = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated, login } = useAuth();
+
+  const handleBecomeMerchant = () => {
+    if (isAuthenticated) {
+      navigate('/register');
+    } else {
+      setPostLoginRedirect('/register');
+      login();
+    }
+  };
+
   return (
     <section className="relative px-6 py-16 bg-primary overflow-hidden">
       {/* Background gradient effects */}
@@ -40,12 +54,13 @@ const HeroSection: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Link
-              to="/dashboard"
+            <button
+              type="button"
+              onClick={handleBecomeMerchant}
               className="inline-flex items-center justify-center rounded-full bg-accent-green px-5 py-2.5 text-sm font-medium text-white hover:bg-accent-green-hover transition-colors"
             >
-             Become a merchant
-            </Link>
+              Become a merchant
+            </button>
             <a
               href="#how-it-works"
               className="inline-flex items-center justify-center rounded-full border border-white/20 bg-transparent px-5 py-2.5 text-sm font-medium text-primary hover:bg-white/5 transition-colors"

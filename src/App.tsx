@@ -32,6 +32,7 @@ import IdentityPage from './pages/dashboard/Identity';
 import VoicePage from './pages/dashboard/Voice';
 import ProfilePage from './pages/dashboard/Profile';
 import Footer from './components/Footer';
+import { PostLoginRedirect } from './components/PostLoginRedirect';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -54,6 +55,7 @@ function App() {
       <OnboardingProvider>
         <div className="payecho-app min-h-screen bg-primary text-primary transition-colors duration-300">
           <DashboardSidebarProvider>
+            <PostLoginRedirect />
             <Header />
             <Routes>
             <Route path="/" element={<Home />} />

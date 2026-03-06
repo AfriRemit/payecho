@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BalanceCard } from '../merchant/BalanceCard';
 import { PaymentFeed } from '../merchant/PaymentFeed';
 import { CreditScoreCard } from '../merchant/CreditScoreCard';
 import { RevenueChart } from '../merchant/RevenueChart';
+import { useAuth } from '../../contexts/AuthContext';
+import { setPostLoginRedirect } from '../../lib/postLoginRedirect';
 
 const container = {
   hidden: { opacity: 0 },
@@ -21,6 +23,17 @@ const item = {
 
 export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const navigate = useNavigate();
+  const { isAuthenticated, login } = useAuth();
+
+  const handleRegisterClick = () => {
+    if (isAuthenticated) {
+      navigate('/register');
+    } else {
+      setPostLoginRedirect('/register');
+      login();
+    }
+  };
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -122,12 +135,13 @@ export default function Dashboard() {
           <p className="text-sm text-secondary">Connect wallet, create profile, and get your QR.</p>
         </div>
         <div className="flex gap-3">
-          <Link
-            to="/register"
+          <button
+            type="button"
+            onClick={handleRegisterClick}
             className="rounded-xl bg-accent-green px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-green-hover transition-colors"
           >
             Register
-          </Link>
+          </button>
           <Link
             to="/dashboard/qr"
             className="rounded-xl border border-white/15 px-5 py-2.5 text-sm font-semibold text-primary hover:bg-white/5 transition-colors"

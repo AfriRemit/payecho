@@ -7,6 +7,7 @@ import { useOnboarding } from '../contexts/OnboardingContext';
 import { toast } from 'react-toastify';
 import { apiPostJson } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+import { setPostLoginRedirect } from '../lib/postLoginRedirect';
 
 const CATEGORIES = [
   'Retail',
@@ -22,7 +23,7 @@ const LANGUAGES = ['English', 'Twi', 'French', 'Swahili'];
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const { completeOnboarding } = useOnboarding();
-  const { address, getToken } = useAuth();
+  const { address, getToken, isAuthenticated, ready, login } = useAuth();
   const [baseName, setBaseName] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -105,6 +106,43 @@ const Register: React.FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
+
+  if (ready && !isAuthenticated) {
+    return (
+      <main className="min-h-[calc(100vh-5rem)] flex items-center justify-center px-4 py-12">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md text-center"
+        >
+          <div className="bg-secondary rounded-xl border border-white/10 p-8">
+            <h1 className="text-xl font-semibold text-primary mb-2">Log in to become a merchant</h1>
+            <p className="text-secondary text-sm mb-6">
+              Sign in with your wallet, email, or social account. We’ll then take you to the registration form.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setPostLoginRedirect('/register');
+                login();
+              }}
+              className="rounded-full bg-accent-green px-5 py-2.5 text-sm font-medium text-white hover:bg-accent-green-hover transition-colors"
+            >
+              Log in
+            </button>
+          </div>
+        </motion.div>
+      </main>
+    );
+  }
+
+  if (!ready) {
+    return (
+      <main className="min-h-[calc(100vh-5rem)] flex items-center justify-center px-4 py-12">
+        <p className="text-secondary">Loading…</p>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-[calc(100vh-5rem)] flex items-center justify-center px-4 py-12">
