@@ -1,12 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useActiveAccount, useActiveWalletChain, ConnectButton } from 'thirdweb/react';
-import { createThirdwebClient } from 'thirdweb';
+import { useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { BASE_SEPOLIA_CHAIN_ID } from '../../lib/base-rpc';
-
-const client = createThirdwebClient({
-  clientId: import.meta.env.VITE_THIRDWEB_CLIENT_ID || 'fallback-client-id',
-});
 
 interface NetworkGuardProps {
   children: ReactNode;
@@ -14,13 +9,14 @@ interface NetworkGuardProps {
 
 export function NetworkGuard({ children }: NetworkGuardProps) {
   const location = useLocation();
-  const account = useActiveAccount();
-  const chain = useActiveWalletChain();
+  const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  const { switchChainAsync, isPending } = useSwitchChain();
 
-  const isCorrectNetwork = chain?.id === BASE_SEPOLIA_CHAIN_ID;
+  const isCorrectNetwork = chainId === BASE_SEPOLIA_CHAIN_ID;
 
-  if (!account) {
-    return <Navigate to="/connect" state={{ from: location }} replace />;
+  if (!isConnected || !address) {
+    return <Navigate to="/" state={{ from: location }} replace />;
   }
 
   if (!isCorrectNetwork) {
@@ -31,7 +27,20 @@ export function NetworkGuard({ children }: NetworkGuardProps) {
           <p className="text-secondary text-sm mb-4">
             Please switch to Base Sepolia to use PayEcho.
           </p>
-          <ConnectButton client={client} switchButton={{ label: 'Switch Network' }} />
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={async () => {
+              try {
+                await switchChainAsync({ chainId: BASE_SEPOLIA_CHAIN_ID });
+              } catch {
+                // wallet rejected / unsupported switching
+              }
+            }}
+            className="w-full rounded-full bg-accent-green px-4 py-2 text-sm font-semibold text-white disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Switch to Base Sepolia
+          </button>
         </div>
       </div>
     );

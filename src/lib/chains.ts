@@ -1,4 +1,5 @@
 // Chain configuration for multichain support
+import { BASE_MAINNET_RPC, BASE_SEPOLIA_RPC } from './base-rpc';
 
 export interface ChainConfig {
   id: number;
@@ -18,44 +19,6 @@ export interface ChainConfig {
   };
 }
 
-// Apechain Testnet Configuration
-export const APECHAIN_CONFIG: ChainConfig = {
-  id: 33111,
-  name: 'Apechain Testnet',
-  nativeCurrency: {
-    name: 'Ape',
-    symbol: 'APE',
-    decimals: 18,
-  },
-  rpcUrl: `https://33111.rpc.thirdweb.com/${import.meta.env.VITE_THIRDWEB_CLIENT_ID}`,
-  blockExplorer: 'https://explorer.apechain.io',
-  contracts: {
-    swapAddress: '0xEaD869D31BAb571Eb50A4BEdb111e22716E5975D',
-    priceFeedAddress: '0xa7d203707Ab0055e188150079d4a89e1adDfbCaB',
-    afriStableAddress: '0xc5737615ed39b6B089BEDdE11679e5e1f6B9E768',
-    savingAddress: '0xe85b044a579e8787afFfBF46691a01E7052cF6D0',
-  },
-};
-
-// Mantle Testnet Configuration
-export const MANTLE_CONFIG: ChainConfig = {
-  id: 5003,
-  name: 'Mantle Testnet',
-  nativeCurrency: {
-    name: 'Mantle',
-    symbol: 'MNT',
-    decimals: 18,
-  },
-  rpcUrl: `https://5003.rpc.thirdweb.com/${import.meta.env.VITE_THIRDWEB_CLIENT_ID}`,
-  blockExplorer: 'https://explorer.testnet.mantle.xyz',
-  contracts: {
-    swapAddress: '0x013b0CA4E4559339F43682B7ac05479eD48E694f',
-    priceFeedAddress: '0xF34EC7483183b0B50E7b50e538ADd13De231eD9b',
-    afriStableAddress: '0xc5737615ed39b6B089BEDdE11679e5e1f6B9E768', // Update if different
-    savingAddress: '0xe85b044a579e8787afFfBF46691a01E7052cF6D0', // Update if different
-  },
-};
-
 // Base Sepolia Testnet Configuration
 export const BASE_SEPOLIA_CONFIG: ChainConfig = {
   id: 84532,
@@ -65,7 +28,7 @@ export const BASE_SEPOLIA_CONFIG: ChainConfig = {
     symbol: 'ETH',
     decimals: 18,
   },
-  rpcUrl: `https://84532.rpc.thirdweb.com/${import.meta.env.VITE_THIRDWEB_CLIENT_ID}`,
+  rpcUrl: BASE_SEPOLIA_RPC,
   blockExplorer: 'https://sepolia-explorer.base.org',
   contracts: {
     swapAddress: '0x2B2068a831e7C7B2Ac4D97Cd293F934d2625aB69',
@@ -75,8 +38,27 @@ export const BASE_SEPOLIA_CONFIG: ChainConfig = {
   },
 };
 
-// Supported chains
-export const SUPPORTED_CHAINS: ChainConfig[] = [APECHAIN_CONFIG, MANTLE_CONFIG, BASE_SEPOLIA_CONFIG];
+// Base Mainnet Configuration
+export const BASE_MAINNET_CONFIG: ChainConfig = {
+  id: 8453,
+  name: 'Base',
+  nativeCurrency: {
+    name: 'Ethereum',
+    symbol: 'ETH',
+    decimals: 18,
+  },
+  rpcUrl: BASE_MAINNET_RPC,
+  blockExplorer: 'https://basescan.org',
+  contracts: {
+    swapAddress: '0x0000000000000000000000000000000000000000',
+    priceFeedAddress: '0x0000000000000000000000000000000000000000',
+    afriStableAddress: '0x0000000000000000000000000000000000000000',
+    savingAddress: '0x0000000000000000000000000000000000000000',
+  },
+};
+
+// Supported chains (PayEcho currently uses Base Sepolia / Base)
+export const SUPPORTED_CHAINS: ChainConfig[] = [BASE_SEPOLIA_CONFIG, BASE_MAINNET_CONFIG];
 
 // Get chain config by ID
 export const getChainConfig = (chainId: number): ChainConfig | undefined => {
@@ -84,7 +66,7 @@ export const getChainConfig = (chainId: number): ChainConfig | undefined => {
 };
 
 // Get default chain (Apechain)
-export const DEFAULT_CHAIN = APECHAIN_CONFIG;
+export const DEFAULT_CHAIN = BASE_SEPOLIA_CONFIG;
 
 // Check if chain is supported
 export const isChainSupported = (chainId: number): boolean => {

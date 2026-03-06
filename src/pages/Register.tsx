@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useActiveAccount } from 'thirdweb/react';
+import { useAccount, useChainId, useSignMessage } from 'wagmi';
 import { JsonRpcProvider } from 'ethers';
 import { BASE_SEPOLIA_RPC } from '../lib/base-rpc';
 import { useOnboarding } from '../contexts/OnboardingContext';
+import { toast } from 'react-toastify';
+import { apiPostJson, getApiBaseUrl } from '../lib/api';
+import { getStoredJwt, siweLogin } from '../lib/siwe-auth';
 
 const CATEGORIES = [
   'Retail',
@@ -20,8 +23,11 @@ const LANGUAGES = ['English', 'Twi', 'French', 'Swahili'];
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const { completeOnboarding } = useOnboarding();
-  const account = useActiveAccount();
+  const { address } = useAccount();
+  const chainId = useChainId();
+  const { signMessageAsync } = useSignMessage();
   const [baseName, setBaseName] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     businessName: '',
     category: '',
@@ -32,24 +38,77 @@ const Register: React.FC = () => {
   });
 
   useEffect(() => {
-    if (!account?.address) {
+    if (!address) {
       setBaseName(null);
       return;
     }
     let cancelled = false;
     const provider = new JsonRpcProvider(BASE_SEPOLIA_RPC);
     provider
-      .lookupAddress(account.address)
+      .lookupAddress(address)
       .then((name) => { if (!cancelled) setBaseName(name || null); })
       .catch(() => { if (!cancelled) setBaseName(null); });
     return () => { cancelled = true; };
-  }, [account?.address]);
+  }, [address]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In the real app this will POST to the backend to create the RewardBank account.
-    completeOnboarding();
-    navigate('/register/success');
+    if (!address) {
+      toast.error('Connect your wallet first.');
+      return;
+    }
+    if (!signMessageAsync) {
+      toast.error('Wallet signing not available.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const apiBaseUrl = getApiBaseUrl();
+      const stored = getStoredJwt();
+      const token =
+        stored?.address?.toLowerCase() === address.toLowerCase()
+          ? stored.token
+          : await siweLogin({
+              address: address as `0x${string}`,
+              chainId,
+              signMessageAsync,
+              apiBaseUrl,
+            });
+
+      const sponsored = await apiPostJson<{ vaultAddress?: string; txHash?: string; error?: string }>(
+        '/api/merchants/register-onchain',
+        {},
+        { token },
+      );
+      if (!sponsored.vaultAddress) {
+        throw new Error(sponsored.error || 'Failed to create vault onchain');
+      }
+
+      const profile = await apiPostJson<{ error?: string }>(
+        '/api/merchants/register',
+        {
+          name: form.businessName,
+          category: form.category,
+          location: form.location,
+          phone: form.phone,
+          email: form.email,
+          preferredLanguage: form.language,
+          vaultAddress: sponsored.vaultAddress,
+        },
+        { token },
+      );
+      if (profile && 'error' in profile && profile.error) {
+        throw new Error(profile.error);
+      }
+
+      completeOnboarding();
+      toast.success('Vault created (sponsored). Merchant profile saved.');
+      navigate('/register/success');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Registration failed');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -76,11 +135,9 @@ const Register: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="rounded-lg bg-tertiary/80 border border-white/10 p-4 space-y-2">
               <p className="text-sm font-medium text-primary">Wallet & Base name</p>
-              {account ? (
+              {address ? (
                 <>
-                  <p className="text-xs text-secondary">
-                    Connected: {account.address.slice(0, 6)}…{account.address.slice(-4)}
-                  </p>
+                  <p className="text-xs text-secondary">Connected: {address.slice(0, 6)}…{address.slice(-4)}</p>
                   <p className="text-xs text-secondary">
                     Base name: {baseName ?? '—'}
                   </p>
@@ -195,9 +252,10 @@ const Register: React.FC = () => {
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button
                 type="submit"
+                disabled={submitting}
                 className="flex-1 rounded-full bg-accent-green px-5 py-2.5 text-sm font-medium text-white hover:bg-accent-green-hover transition-colors"
               >
-                Continue → Deploy vault & get QR
+                {submitting ? 'Creating vault…' : 'Continue → Deploy vault & get QR'}
               </button>
               <Link
                 to="/dashboard"

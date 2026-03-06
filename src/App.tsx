@@ -9,7 +9,6 @@ import FeaturesSection from './components/home/FeaturesSection';
 import SecuritySection from './components/home/SecuritySection';
 import FAQSection from './components/home/FAQSection';
 import DashboardLayout from './layouts/DashboardLayout';
-import ConnectPage from './pages/Connect';
 import DashboardPage from './pages/Dashboard';
 import RegisterPage from './pages/Register';
 import RegisterSuccessPage from './pages/RegisterSuccess';
@@ -52,7 +51,7 @@ function App() {
   return (
     <ThemeProvider>
       <OnboardingProvider>
-        <div className="min-h-screen bg-primary text-primary transition-colors duration-300">
+        <div className="payecho-app min-h-screen bg-primary text-primary transition-colors duration-300">
           <DashboardSidebarProvider>
             <Header />
             <Routes>
@@ -69,7 +68,7 @@ function App() {
             <Route path="/resources/crypto-api" element={<CryptoAPIPage />} />
             <Route path="/resources/interest" element={<InterestPage />} />
 
-            <Route path="/connect" element={<ConnectPage />} />
+            <Route path="/connect" element={<Navigate to="/dashboard" replace />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/register/success" element={<RegisterSuccessPage />} />
             <Route path="/pay" element={<PayPage />} />

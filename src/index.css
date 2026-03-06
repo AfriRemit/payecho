@@ -75,53 +75,65 @@ body {
   background: var(--bg-quaternary);
 }
 
-/* Custom utility classes */
+/* Custom utility classes — scoped so they win over OnchainKit/other libs */
 @layer utilities {
-  .bg-primary {
+  .bg-primary,
+  .payecho-app .bg-primary {
     background-color: var(--bg-primary);
   }
   
-  .bg-secondary {
+  .bg-secondary,
+  .payecho-app .bg-secondary {
     background-color: var(--bg-secondary);
   }
   
-  .bg-tertiary {
+  .bg-tertiary,
+  .payecho-app .bg-tertiary {
     background-color: var(--bg-tertiary);
   }
   
-  .text-primary {
+  .text-primary,
+  .payecho-app .text-primary {
     color: var(--text-primary);
   }
   
-  .text-secondary {
+  .text-secondary,
+  .payecho-app .text-secondary {
     color: var(--text-secondary);
   }
   
-  .accent-green {
+  .accent-green,
+  .payecho-app .accent-green {
     color: var(--accent-green);
   }
   
-  .bg-accent-green {
+  .bg-accent-green,
+  .payecho-app .bg-accent-green {
     background-color: var(--accent-green);
   }
 
-  .bg-accent-green-hover {
+  .bg-accent-green-hover,
+  .payecho-app .bg-accent-green-hover {
     background-color: var(--accent-green-hover);
   }
   
-  .accent-red {
+  .accent-red,
+  .payecho-app .accent-red {
     color: var(--accent-red);
   }
   
-  .bg-accent-red {
+  .bg-accent-red,
+  .payecho-app .bg-accent-red {
     background-color: var(--accent-red);
   }
   
-  .metallic {
+  .metallic,
+  .payecho-app .metallic {
     color: var(--metallic-silver);
   }
   
-  .metallic-dark {
+  .metallic-dark,
+  .payecho-app .metallic-dark {
     color: var(--metallic-silver-dark);
   }
 }
@@ -202,4 +214,36 @@ input[type="number"]::-webkit-inner-spin-button {
 
 input[type="number"] {
   -moz-appearance: textfield;
+}
+
+/* Re-apply base theme so it wins over OnchainKit's global styles */
+#root,
+#root.payecho-app {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+html,
+body {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+}
+/* Connect page and all app content — ensure theme applies over OnchainKit */
+.payecho-app main {
+  color: var(--text-primary);
+  background-color: transparent;
+}
+.payecho-app .bg-secondary {
+  background-color: var(--bg-secondary) !important;
+}
+.payecho-app .text-primary {
+  color: var(--text-primary) !important;
+}
+.payecho-app .text-secondary {
+  color: var(--text-secondary) !important;
+}
+.payecho-app .accent-green {
+  color: var(--accent-green) !important;
 }

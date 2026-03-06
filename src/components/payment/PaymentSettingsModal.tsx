@@ -1,11 +1,6 @@
-import { useActiveAccount, useActiveWallet, useDisconnect, useWalletBalance } from 'thirdweb/react';
-import { base } from 'thirdweb/chains';
-import { createThirdwebClient } from 'thirdweb';
+import { useAccount, useBalance, useDisconnect } from 'wagmi';
+import { base } from 'wagmi/chains';
 import type { PaymentMethod } from './types';
-
-const client = createThirdwebClient({
-  clientId: import.meta.env.VITE_THIRDWEB_CLIENT_ID || 'fallback-client-id',
-});
 
 interface PaymentSettingsModalProps {
   open: boolean;
@@ -20,13 +15,11 @@ export function PaymentSettingsModal({
   onChangePaymentMethod,
   onClose,
 }: PaymentSettingsModalProps) {
-  const account = useActiveAccount();
-  const activeWallet = useActiveWallet();
+  const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
-  const { data: nativeBalance } = useWalletBalance({
-    client,
-    chain: base,
-    address: account?.address,
+  const { data: nativeBalance } = useBalance({
+    address,
+    chainId: base.id,
   });
 
   if (!open) return null;
@@ -60,23 +53,21 @@ export function PaymentSettingsModal({
             <option value="other">Other methods (coming soon)</option>
           </select>
         </div>
-        {account && (
+        {isConnected && address && (
           <div className="space-y-2 pt-1 border-t border-white/10">
             <p className="text-xs font-semibold text-primary">Connected wallet</p>
             <p className="text-xs font-mono text-secondary break-all">
-              {account.address.slice(0, 6)}…{account.address.slice(-4)}
+              {address.slice(0, 6)}…{address.slice(-4)}
             </p>
             <p className="text-[11px] text-secondary/80">
               {nativeBalance
-                ? `${Number(nativeBalance.displayValue).toFixed(4)} ${nativeBalance.symbol} on Base`
+                ? `${Number(nativeBalance.formatted).toFixed(4)} ${nativeBalance.symbol} on Base`
                 : '0 ETH on Base'}
             </p>
             <button
               type="button"
               onClick={() => {
-                if (activeWallet) {
-                  disconnect(activeWallet);
-                }
+                disconnect();
                 onClose();
               }}
               className="mt-1 w-full rounded-full border border-white/25 px-4 py-2 text-xs font-semibold text-primary hover:bg-white/5 transition-colors"
