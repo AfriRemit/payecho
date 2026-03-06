@@ -1,5 +1,4 @@
-import { useAccount, useBalance, useDisconnect } from 'wagmi';
-import { base } from 'wagmi/chains';
+import { useAuth } from '../../contexts/AuthContext';
 import type { PaymentMethod } from './types';
 
 interface PaymentSettingsModalProps {
@@ -15,12 +14,7 @@ export function PaymentSettingsModal({
   onChangePaymentMethod,
   onClose,
 }: PaymentSettingsModalProps) {
-  const { address, isConnected } = useAccount();
-  const { disconnect } = useDisconnect();
-  const { data: nativeBalance } = useBalance({
-    address,
-    chainId: base.id,
-  });
+  const { address, isAuthenticated, logout } = useAuth();
 
   if (!open) return null;
 
@@ -53,26 +47,22 @@ export function PaymentSettingsModal({
             <option value="other">Other methods (coming soon)</option>
           </select>
         </div>
-        {isConnected && address && (
+        {isAuthenticated && address && (
           <div className="space-y-2 pt-1 border-t border-white/10">
             <p className="text-xs font-semibold text-primary">Connected wallet</p>
             <p className="text-xs font-mono text-secondary break-all">
               {address.slice(0, 6)}…{address.slice(-4)}
             </p>
-            <p className="text-[11px] text-secondary/80">
-              {nativeBalance
-                ? `${Number(nativeBalance.formatted).toFixed(4)} ${nativeBalance.symbol} on Base`
-                : '0 ETH on Base'}
-            </p>
+            <p className="text-[11px] text-secondary/80">Base</p>
             <button
               type="button"
               onClick={() => {
-                disconnect();
+                logout();
                 onClose();
               }}
               className="mt-1 w-full rounded-full border border-white/25 px-4 py-2 text-xs font-semibold text-primary hover:bg-white/5 transition-colors"
             >
-              Disconnect wallet
+              Log out
             </button>
           </div>
         )}

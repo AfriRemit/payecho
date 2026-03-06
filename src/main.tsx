@@ -8,7 +8,7 @@ import App from './App.tsx';
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AppProviders>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_relativeSplatPath: true }}>
         <App />
       </BrowserRouter>
     </AppProviders>

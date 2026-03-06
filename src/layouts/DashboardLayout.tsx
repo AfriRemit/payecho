@@ -13,7 +13,7 @@ import { NetworkGuard } from '../components/web3/NetworkGuard';
 import { useOnboarding } from '../contexts/OnboardingContext';
 import { useDashboardSidebar } from '../contexts/DashboardSidebarContext';
 import { ThemeToggle } from '../components/ui/ThemeToggle';
-import { WalletButton } from '../components/web3/WalletButton';
+import { AccountDropdown } from '../components/web3/AccountDropdown';
 
 const SIDEBAR_LINKS = [
   { to: '/dashboard', label: 'Dashboard', end: true, Icon: LayoutDashboard },
@@ -63,9 +63,7 @@ export default function DashboardLayout() {
   const sidebarOpen = dashboardSidebar?.sidebarOpen ?? false;
   const setSidebarOpen = dashboardSidebar?.setSidebarOpen ?? (() => {});
   const { isOnboarded } = useOnboarding();
-
-  // Until the backend is wired, we use onboarding state to decide if the
-  // merchant should be allowed into the dashboard flow.
+  // Require onboarding (registration completed) first
   if (!isOnboarded) {
     return <Navigate to="/register" replace />;
   }
@@ -122,7 +120,7 @@ export default function DashboardLayout() {
                 <div className="px-3 pt-3 mt-auto border-t border-white/10 space-y-2 shrink-0">
                   <div className="flex items-center justify-between">
                     <ThemeToggle />
-                    <WalletButton />
+                    <AccountDropdown />
                   </div>
                   <p className="text-[11px] text-secondary">Base · USDC</p>
                 </div>

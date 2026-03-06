@@ -30,6 +30,7 @@ import SavingsPage from './pages/dashboard/Savings';
 import LendingPage from './pages/dashboard/Lending';
 import IdentityPage from './pages/dashboard/Identity';
 import VoicePage from './pages/dashboard/Voice';
+import ProfilePage from './pages/dashboard/Profile';
 import Footer from './components/Footer';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -75,6 +76,7 @@ function App() {
             <Route path="/scan" element={<ScanPage />} />
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<DashboardPage />} />
+              <Route path="profile" element={<ProfilePage />} />
               <Route path="qr" element={<QRPage />} />
               <Route path="transactions" element={<TransactionsPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />

@@ -1,0 +1,198 @@
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { toast } from 'react-toastify';
+import { useAuth } from '../../contexts/AuthContext';
+import { apiGetJson, apiPatchJson } from '../../lib/api';
+
+export interface UserProfileResponse {
+  walletAddress: string;
+  displayName: string | null;
+  email: string | null;
+  phone: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export default function Profile() {
+  const { getToken, address } = useAuth();
+  const [profile, setProfile] = useState<UserProfileResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [edit, setEdit] = useState({
+    displayName: '',
+    email: '',
+    phone: '',
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    setError(null);
+    (async () => {
+      const token = await getToken();
+      if (!token) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
+      try {
+        const data = await apiGetJson<UserProfileResponse>('/api/profile', { token });
+        if (!cancelled && data?.walletAddress) {
+          setProfile(data);
+          setEdit({
+            displayName: data.displayName ?? '',
+            email: data.email ?? '',
+            phone: data.phone ?? '',
+          });
+        } else if (!cancelled) {
+          setProfile(null);
+          setError('Profile response missing wallet address');
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setProfile(null);
+          const msg = e instanceof Error ? e.message : String(e);
+          setError(msg);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [getToken, address]);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = await getToken();
+    if (!token) {
+      toast.error('Please log in again.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const updated = await apiPatchJson<UserProfileResponse>('/api/profile', {
+        displayName: edit.displayName || undefined,
+        email: edit.email || undefined,
+        phone: edit.phone || undefined,
+      }, { token });
+      setProfile(updated);
+      toast.success('Profile updated.');
+    } catch {
+      toast.error('Failed to update profile.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+        <h1 className="text-2xl md:text-3xl font-semibold text-primary">Profile</h1>
+        <div className="bg-secondary rounded-xl border border-white/10 p-8 flex items-center justify-center">
+          <p className="text-secondary">Loading…</p>
+        </div>
+      </motion.div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+        <h1 className="text-2xl md:text-3xl font-semibold text-primary">Profile</h1>
+        <div className="bg-secondary rounded-xl border border-white/10 p-8 text-center space-y-3">
+          <p className="text-secondary">Could not load profile.</p>
+          {error && (
+            <p className="text-sm text-red-400/90 font-mono break-all">
+              {error}
+            </p>
+          )}
+          <p className="text-sm text-secondary/80">
+            Make sure you’re logged in and that <strong>identity tokens</strong> are enabled in your Privy app (Dashboard → User management → Authentication → Advanced). See PRIVY_SETUP.md for steps.
+          </p>
+        </div>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6"
+    >
+      <div>
+        <h1 className="text-2xl md:text-3xl font-semibold text-primary">Profile</h1>
+        <p className="text-secondary text-sm mt-1">
+          Your account details and PayEcho wallet address.
+        </p>
+      </div>
+
+      {/* PayEcho wallet address — read-only, created on first login */}
+      <div className="bg-secondary rounded-xl border border-white/10 p-6">
+        <h2 className="text-sm font-semibold text-secondary uppercase tracking-wide mb-2">
+          PayEcho wallet address
+        </h2>
+        <p className="text-primary font-mono text-sm break-all">
+          {profile.walletAddress}
+        </p>
+        <p className="text-xs text-secondary mt-2">
+          This is your wallet address (created when you logged in). Use it to receive payments and link your merchant vault.
+        </p>
+      </div>
+
+      {/* Editable profile */}
+      <form onSubmit={handleSave} className="bg-secondary rounded-xl border border-white/10 p-6 space-y-5">
+        <h2 className="text-lg font-semibold text-primary">Your details</h2>
+
+        <div>
+          <label htmlFor="profile-displayName" className="block text-sm font-medium text-primary mb-1.5">
+            Display name
+          </label>
+          <input
+            id="profile-displayName"
+            type="text"
+            value={edit.displayName}
+            onChange={(e) => setEdit((p) => ({ ...p, displayName: e.target.value }))}
+            placeholder="e.g. Ada"
+            className="w-full rounded-lg bg-tertiary border border-white/10 px-4 py-2.5 text-primary placeholder:text-secondary text-sm focus:outline-none focus:ring-2 focus:ring-accent-green/50"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="profile-email" className="block text-sm font-medium text-primary mb-1.5">
+            Email
+          </label>
+          <input
+            id="profile-email"
+            type="email"
+            value={edit.email}
+            onChange={(e) => setEdit((p) => ({ ...p, email: e.target.value }))}
+            placeholder="you@example.com"
+            className="w-full rounded-lg bg-tertiary border border-white/10 px-4 py-2.5 text-primary placeholder:text-secondary text-sm focus:outline-none focus:ring-2 focus:ring-accent-green/50"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="profile-phone" className="block text-sm font-medium text-primary mb-1.5">
+            Phone
+          </label>
+          <input
+            id="profile-phone"
+            type="tel"
+            value={edit.phone}
+            onChange={(e) => setEdit((p) => ({ ...p, phone: e.target.value }))}
+            placeholder="+233..."
+            className="w-full rounded-lg bg-tertiary border border-white/10 px-4 py-2.5 text-primary placeholder:text-secondary text-sm focus:outline-none focus:ring-2 focus:ring-accent-green/50"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={saving}
+          className="rounded-full bg-accent-green px-5 py-2.5 text-sm font-medium text-white hover:bg-accent-green-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {saving ? 'Saving…' : 'Save changes'}
+        </button>
+      </form>
+    </motion.div>
+  );
+}

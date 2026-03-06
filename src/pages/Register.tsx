@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useAccount, useChainId, useSignMessage } from 'wagmi';
 import { JsonRpcProvider } from 'ethers';
 import { BASE_SEPOLIA_RPC } from '../lib/base-rpc';
 import { useOnboarding } from '../contexts/OnboardingContext';
 import { toast } from 'react-toastify';
-import { apiPostJson, getApiBaseUrl } from '../lib/api';
-import { getStoredJwt, siweLogin } from '../lib/siwe-auth';
+import { apiPostJson } from '../lib/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const CATEGORIES = [
   'Retail',
@@ -23,9 +22,7 @@ const LANGUAGES = ['English', 'Twi', 'French', 'Swahili'];
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const { completeOnboarding } = useOnboarding();
-  const { address } = useAccount();
-  const chainId = useChainId();
-  const { signMessageAsync } = useSignMessage();
+  const { address, getToken } = useAuth();
   const [baseName, setBaseName] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -54,26 +51,20 @@ const Register: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!address) {
-      toast.error('Connect your wallet first.');
-      return;
-    }
-    if (!signMessageAsync) {
-      toast.error('Wallet signing not available.');
+      toast.error('Log in first to get your wallet address.');
       return;
     }
     setSubmitting(true);
     try {
-      const apiBaseUrl = getApiBaseUrl();
-      const stored = getStoredJwt();
-      const token =
-        stored?.address?.toLowerCase() === address.toLowerCase()
-          ? stored.token
-          : await siweLogin({
-              address: address as `0x${string}`,
-              chainId,
-              signMessageAsync,
-              apiBaseUrl,
-            });
+      let token = await getToken();
+      if (!token) {
+        await new Promise((r) => setTimeout(r, 800));
+        token = await getToken();
+      }
+      if (!token) {
+        toast.error('Session expired. Please log in again, then try Register.');
+        return;
+      }
 
       const sponsored = await apiPostJson<{ vaultAddress?: string; txHash?: string; error?: string }>(
         '/api/merchants/register-onchain',
@@ -148,7 +139,7 @@ const Register: React.FC = () => {
                   )}
                 </>
               ) : (
-                <p className="text-xs text-secondary">Connect your wallet to see your Base name.</p>
+                <p className="text-xs text-secondary">Log in above to see your wallet. We’ll create an embedded wallet if you sign up with email or social.</p>
               )}
             </div>
             <div>
@@ -252,8 +243,8 @@ const Register: React.FC = () => {
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button
                 type="submit"
-                disabled={submitting}
-                className="flex-1 rounded-full bg-accent-green px-5 py-2.5 text-sm font-medium text-white hover:bg-accent-green-hover transition-colors"
+                disabled={submitting || !address}
+                className="flex-1 rounded-full bg-accent-green px-5 py-2.5 text-sm font-medium text-white hover:bg-accent-green-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? 'Creating vault…' : 'Continue → Deploy vault & get QR'}
               </button>

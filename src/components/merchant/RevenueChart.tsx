@@ -58,8 +58,8 @@ export function RevenueChart({ data, range }: RevenueChartProps) {
   const maxVal = useMemo(() => Math.max(...chartData.map((d) => d.value), 1), [chartData]);
 
   return (
-    <div className="h-48 w-full">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="h-48 min-h-[180px] w-full">
+      <ResponsiveContainer width="100%" height="100%" minHeight={180}>
         <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--bg-tertiary)" opacity={0.5} />
           <XAxis

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from './ui/ThemeToggle';
-import { WalletButton } from './web3/WalletButton';
+import { AccountDropdown } from './web3/AccountDropdown';
 import { useDashboardSidebar } from '../contexts/DashboardSidebarContext';
 
 export default function Header() {
@@ -59,7 +59,7 @@ export default function Header() {
 
           <div className="hidden md:flex items-center space-x-4">
             <ThemeToggle />
-            <WalletButton />
+            <AccountDropdown />
           </div>
 
           <button
@@ -114,7 +114,7 @@ export default function Header() {
                   style={{ borderColor: 'var(--bg-tertiary)' }}
                 >
                   <ThemeToggle />
-                  <WalletButton />
+                  <AccountDropdown />
                 </div>
               </div>
             </motion.div>

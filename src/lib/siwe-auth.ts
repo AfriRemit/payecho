@@ -33,7 +33,7 @@ export async function siweLogin(args: {
     uri: window.location.origin,
     version: '1',
     chainId: args.chainId,
-    nonce: crypto.randomUUID(),
+    nonce: crypto.randomUUID().replace(/-/g, ''),
     issuedAt: new Date(),
   });
 

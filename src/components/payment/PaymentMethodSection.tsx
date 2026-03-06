@@ -1,6 +1,4 @@
-import { Wallet, ConnectWallet } from '@coinbase/onchainkit/wallet';
-import { useAccount, useBalance, useChainId } from 'wagmi';
-import { base } from 'wagmi/chains';
+import { useAuth } from '../../contexts/AuthContext';
 import type { PaymentMethod } from './types';
 
 interface PaymentMethodSectionProps {
@@ -16,14 +14,9 @@ export function PaymentMethodSection({
   onChangePaymentMethod,
   onRequestPay,
 }: PaymentMethodSectionProps) {
-  const { address, isConnected } = useAccount();
-  const chainId = useChainId();
-  const { data: nativeBalance } = useBalance({
-    address,
-    chainId: base.id,
-  });
+  const { address, isAuthenticated, login } = useAuth();
 
-  const canPay = Boolean(amount && paymentMethod === 'wallet' && isConnected && address);
+  const canPay = Boolean(amount && paymentMethod === 'wallet' && isAuthenticated && address);
 
   return (
     <>
@@ -43,28 +36,25 @@ export function PaymentMethodSection({
         </div>
 
         {paymentMethod === 'wallet' ? (
-          isConnected && address ? (
+          isAuthenticated && address ? (
             <p className="text-xs text-secondary text-center">
               Connected:{' '}
               <span className="font-mono text-primary">
                 {address.slice(0, 6)}…{address.slice(-4)}
               </span>
-              {' · '}
-              <span>
-                {nativeBalance ? `${Number(nativeBalance.formatted).toFixed(4)} ${nativeBalance.symbol} on Base` : '0 ETH on Base'}
-                {chainId !== base.id ? ' (wrong network)' : ''}
-              </span>
+              {' · Base'}
             </p>
           ) : (
             <>
               <p className="text-xs text-secondary text-center mb-3">Base network · USDC required</p>
               <div className="flex justify-center">
-                <Wallet>
-                  <ConnectWallet
-                    className="!bg-accent-green hover:!bg-accent-green-hover !text-white !rounded-full !px-6 !py-2 !font-medium"
-                    disconnectedLabel="Connect wallet"
-                  />
-                </Wallet>
+                <button
+                  type="button"
+                  onClick={login}
+                  className="rounded-full bg-accent-green px-6 py-2 font-medium text-white hover:bg-accent-green-hover"
+                >
+                  Log in to pay
+                </button>
               </div>
             </>
           )
