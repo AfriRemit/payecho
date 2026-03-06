@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext.tsx';
-import { setPostLoginRedirect } from '../../lib/postLoginRedirect.ts';
+import { useAuth } from '@/contexts/AuthContext';
+import { setPostLoginRedirect } from '@/lib/postLoginRedirect';
 
 const VOICE_CONFIRMATIONS = [
   { amount: '25', total: '120' },

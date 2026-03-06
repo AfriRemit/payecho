@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext.tsx';
-import { getPostLoginRedirect, clearPostLoginRedirect } from '../../lib/postLoginRedirect.ts';
+import { useAuth } from '@/contexts/AuthContext';
+import { getPostLoginRedirect, clearPostLoginRedirect } from '@/lib/postLoginRedirect';
 
 /**
  * When user becomes authenticated, redirect to path stored by setPostLoginRedirect (e.g. /register).

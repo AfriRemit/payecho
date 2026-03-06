@@ -40,6 +40,11 @@ export default defineConfig({
     react(),
     onchainkitCssPlugin(),
   ],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
   server: {
     // Allow any host so *.loca.lt tunnel URLs work
     allowedHosts: true,
