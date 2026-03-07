@@ -103,7 +103,8 @@ const Register: React.FC = () => {
       const raw = err instanceof Error ? err.message : 'Registration failed';
       let msg = raw;
       if (err instanceof TypeError && raw === 'Failed to fetch') {
-        msg = 'Cannot reach the backend. Check https://payechobackend.onrender.com or run it locally: npm run start (in payechoBackend).';
+        msg =
+          'Cannot reach the backend. If it’s on Render (payechobackend.onrender.com), it may be waking up — wait 30–60 seconds and try again. Or run locally: npm run start in payechoBackend.';
       } else if (/something went wrong|discord\.com/i.test(raw) && raw.length > 120) {
         // Long generic message (e.g. SDK redirect to Discord): show short hint and ask to check terminal
         msg = 'Registration failed. Ensure the backend is running and CDP wallet is configured. Check the backend terminal for details.';

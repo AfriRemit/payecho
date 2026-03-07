@@ -9,9 +9,11 @@ interface SavingsPanelProps {
   savingsBalance?: string;
   emergencyBalance?: string;
   taxBalance?: string;
+  /** Max savings % from contract (bps). Default 3000 (30%). */
+  maxSavingsBps?: number;
 }
 
-const SAVINGS_MAX_BPS = 3000; // 30%
+const DEFAULT_SAVINGS_MAX_BPS = 3000; // 30%
 const EMERGENCY_BPS = 500; // 5% fixed
 const TAX_BPS = 500; // 5% fixed
 
@@ -22,7 +24,9 @@ export function SavingsPanel({
   savingsBalance = '0.00',
   emergencyBalance = '0.00',
   taxBalance = '0.00',
+  maxSavingsBps = DEFAULT_SAVINGS_MAX_BPS,
 }: SavingsPanelProps) {
+  const savingsMax = Math.max(0, Math.min(5000, maxSavingsBps)); // clamp 0–50%
   const savingsPct = savingsBps / 100;
   const emergencyPct = EMERGENCY_BPS / 100;
   const taxPct = TAX_BPS / 100;
@@ -66,9 +70,9 @@ export function SavingsPanel({
             <input
               type="range"
               min="0"
-              max={SAVINGS_MAX_BPS}
+              max={savingsMax}
               step="100"
-              value={savingsBps}
+              value={Math.min(savingsBps, savingsMax)}
               onChange={(e) => onSavingsChange(Number(e.target.value))}
               className="w-full h-3 rounded-full bg-tertiary appearance-none accent-accent-green cursor-pointer"
             />

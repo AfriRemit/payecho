@@ -1,15 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../contexts/AuthContext';
+import { apiGetJson } from '../../lib/api';
+import { shortenAddress } from '../../lib/utils';
 
-const PLACEHOLDER_ROWS = [
-  { amount: '25.00', payer: '0x2A01...9EA9', time: '2 min ago', link: '#' },
-  { amount: '50.00', payer: '0xDc04...d3a1', time: '1 hour ago', link: '#' },
-  { amount: '15.00', payer: '0xae2F...aE13', time: '3 hours ago', link: '#' },
-];
+interface PaymentRow {
+  id: string;
+  amount: string;
+  total: string;
+  payer: string;
+  timestamp: string;
+  txHash: string;
+}
 
-function exportToCsv(rows: typeof PLACEHOLDER_ROWS) {
-  const headers = ['Amount (USDC)', 'Payer', 'Time'];
-  const csv = [headers.join(','), ...rows.map((r) => [r.amount, r.payer, r.time].join(','))].join('\n');
+interface DashboardResponse {
+  payments: PaymentRow[];
+}
+
+function exportToCsv(rows: PaymentRow[]) {
+  const headers = ['Amount (USDC)', 'Payer', 'Time', 'Link'];
+  const csv = [
+    headers.join(','),
+    ...rows.map((r) =>
+      [r.amount, r.payer, r.timestamp, r.txHash.startsWith('http') ? r.txHash : ''].join(','),
+    ),
+  ].join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -21,6 +36,47 @@ function exportToCsv(rows: typeof PLACEHOLDER_ROWS) {
 
 export default function Transactions() {
   const [filter, setFilter] = useState<'all' | 'date' | 'amount'>('all');
+  const [payments, setPayments] = useState<PaymentRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { address, getToken } = useAuth();
+
+  const loadPayments = useCallback(async () => {
+    if (!address) {
+      setPayments([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await getToken();
+      const data = await apiGetJson<DashboardResponse>(
+        `/api/merchants/${address.toLowerCase()}/dashboard`,
+        { token },
+      );
+      setPayments(data.payments ?? []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load transactions');
+      setPayments([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [address, getToken]);
+
+  useEffect(() => {
+    loadPayments();
+  }, [loadPayments]);
+
+  const sortedRows = useMemo(() => {
+    const list = [...payments];
+    if (filter === 'amount') {
+      list.sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount));
+    } else {
+      list.sort((a, b) => (b.id > a.id ? 1 : -1));
+    }
+    return list;
+  }, [payments, filter]);
 
   return (
     <motion.div
@@ -38,8 +94,9 @@ export default function Transactions() {
         <div className="flex gap-3">
           <button
             type="button"
-            onClick={() => exportToCsv(PLACEHOLDER_ROWS)}
-            className="rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-primary hover:bg-white/5 transition-colors flex items-center gap-2"
+            onClick={() => exportToCsv(sortedRows)}
+            disabled={sortedRows.length === 0}
+            className="rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-primary hover:bg-white/5 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -64,6 +121,10 @@ export default function Transactions() {
         ))}
       </div>
 
+      {error && (
+        <p className="text-sm text-amber-500/90">{error}</p>
+      )}
+
       <div className="bg-secondary rounded-xl border border-white/10 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -76,23 +137,48 @@ export default function Transactions() {
               </tr>
             </thead>
             <tbody>
-              {PLACEHOLDER_ROWS.map((row, i) => (
-                <tr key={i} className="border-b border-white/5 hover:bg-tertiary/30 transition-colors">
-                  <td className="px-4 py-3 font-medium text-accent-green">{row.amount} USDC</td>
-                  <td className="px-4 py-3 font-mono text-primary">{row.payer}</td>
-                  <td className="px-4 py-3 text-secondary">{row.time}</td>
-                  <td className="px-4 py-3 text-right">
-                    <a
-                      href={row.link}
-                      className="text-accent-green hover:underline text-xs"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Basescan
-                    </a>
+              {loading ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-8 text-center text-secondary">
+                    Loading…
                   </td>
                 </tr>
-              ))}
+              ) : sortedRows.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-8 text-center text-secondary">
+                    No transactions yet. Payments will appear here when customers pay you.
+                  </td>
+                </tr>
+              ) : (
+                sortedRows.map((row) => (
+                  <tr
+                    key={row.id}
+                    className="border-b border-white/5 hover:bg-tertiary/30 transition-colors"
+                  >
+                    <td className="px-4 py-3 font-medium text-accent-green">
+                      {row.amount} USDC
+                    </td>
+                    <td className="px-4 py-3 font-mono text-primary">
+                      {row.payer ? shortenAddress(row.payer, 4) : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-secondary">{row.timestamp}</td>
+                    <td className="px-4 py-3 text-right">
+                      {row.txHash ? (
+                        <a
+                          href={row.txHash.startsWith('http') ? row.txHash : `https://sepolia.basescan.org/tx/${row.txHash}`}
+                          className="text-accent-green hover:underline text-xs"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Basescan
+                        </a>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BalanceCard } from '../merchant/BalanceCard';
@@ -7,6 +7,20 @@ import { CreditScoreCard } from '../merchant/CreditScoreCard';
 import { RevenueChart } from '../merchant/RevenueChart';
 import { useAuth } from '../../contexts/AuthContext';
 import { setPostLoginRedirect } from '../../lib/postLoginRedirect';
+import { apiGetJson } from '../../lib/api';
+
+interface DashboardData {
+  balance: { liquidUsdc: string; savingsUsdc: string; lockedInLoanUsdc: string };
+  payments: Array<{ id: string; amount: string; total: string; payer: string; timestamp: string; txHash: string }>;
+  revenue: {
+    daily: Array<{ label: string; value: number; usdc: string }>;
+    weekly: Array<{ label: string; value: number; usdc: string }>;
+    monthly: Array<{ label: string; value: number; usdc: string }>;
+  };
+  score: number;
+  tier: string;
+  scoreUpdatedAt?: string;
+}
 
 const container = {
   hidden: { opacity: 0 },
@@ -23,8 +37,38 @@ const item = {
 
 export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
+  const [revenueRange] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
   const navigate = useNavigate();
-  const { isAuthenticated, login } = useAuth();
+  const { isAuthenticated, login, address, getToken } = useAuth();
+
+  const loadDashboard = useCallback(async () => {
+    if (!address) return;
+    setDashboardError(null);
+    try {
+      const token = await getToken();
+      const data = await apiGetJson<DashboardData>(
+        `/api/merchants/${address.toLowerCase()}/dashboard`,
+        { token },
+      );
+      setDashboard(data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Failed to load dashboard';
+      setDashboardError(msg);
+      setDashboard(null);
+    }
+  }, [address, getToken]);
+
+  useEffect(() => {
+    if (isAuthenticated && address) loadDashboard();
+    else setDashboard(null);
+  }, [isAuthenticated, address, loadDashboard]);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadDashboard().finally(() => setTimeout(() => setRefreshing(false), 800));
+  };
 
   const handleRegisterClick = () => {
     if (isAuthenticated) {
@@ -35,10 +79,13 @@ export default function Dashboard() {
     }
   };
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
-  };
+  const liquidUsdc = dashboard?.balance?.liquidUsdc ?? '0.00';
+  const savingsUsdc = dashboard?.balance?.savingsUsdc ?? '0.00';
+  const lockedUsdc = dashboard?.balance?.lockedInLoanUsdc ?? '0.00';
+  const score = dashboard != null ? dashboard.score : null;
+  const paymentItems = dashboard ? (dashboard.payments ?? []) : [];
+  const revenueData =
+    dashboard?.revenue && revenueRange ? dashboard.revenue[revenueRange] : undefined;
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-8 pb-8">
@@ -85,7 +132,7 @@ export default function Dashboard() {
         <motion.div variants={item}>
           <BalanceCard
             label="Liquid USDC"
-            amount="0.00"
+            amount={liquidUsdc}
             onRefresh={handleRefresh}
             isLoading={refreshing}
           />
@@ -93,7 +140,7 @@ export default function Dashboard() {
         <motion.div variants={item}>
           <BalanceCard
             label="Savings"
-            amount="0.00"
+            amount={savingsUsdc}
             variant="accent"
             onRefresh={handleRefresh}
             isLoading={refreshing}
@@ -102,25 +149,31 @@ export default function Dashboard() {
         <motion.div variants={item}>
           <BalanceCard
             label="Locked in loan"
-            amount="0.00"
+            amount={lockedUsdc}
             onRefresh={handleRefresh}
             isLoading={refreshing}
           />
         </motion.div>
         <motion.div variants={item}>
-          <CreditScoreCard score={null} />
+          <CreditScoreCard score={score} />
         </motion.div>
       </div>
+
+      {dashboardError && (
+        <motion.p variants={item} className="text-sm text-amber-500/90">
+          {dashboardError}
+        </motion.p>
+      )}
 
       {/* Main content grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <motion.div variants={item}>
-          <PaymentFeed onSoundToggle={() => {}} />
+          <PaymentFeed items={paymentItems} onSoundToggle={() => {}} />
         </motion.div>
         <motion.div variants={item}>
           <div className="bg-secondary rounded-xl border border-white/10 p-5 h-full">
             <h2 className="text-lg font-semibold text-primary mb-4">Revenue</h2>
-            <RevenueChart range="weekly" />
+            <RevenueChart data={revenueData} range={revenueRange} />
           </div>
         </motion.div>
       </div>

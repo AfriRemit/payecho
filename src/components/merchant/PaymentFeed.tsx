@@ -12,21 +12,16 @@ export interface PaymentFeedItem {
 }
 
 interface PaymentFeedProps {
+  /** Payments from dashboard API; empty array = no payments (show empty state). */
   items?: PaymentFeedItem[];
   soundEnabled?: boolean;
   onSoundToggle?: (enabled: boolean) => void;
 }
 
-const DEFAULT_ITEMS: PaymentFeedItem[] = [
-  { id: '1', amount: '25', total: '120', payer: '0x2A019EA9', timestamp: '2 min ago', txHash: '#' },
-  { id: '2', amount: '50', total: '200', payer: '0xDc04d3a1', timestamp: '1 hour ago', txHash: '#' },
-  { id: '3', amount: '15', total: '85', payer: '0xae2FaE13', timestamp: '3 hours ago', txHash: '#' },
-];
-
 const BASESCAN_BASE = 'https://sepolia.basescan.org/tx/';
 
 export function PaymentFeed({
-  items = DEFAULT_ITEMS,
+  items = [],
   soundEnabled = true,
   onSoundToggle,
 }: PaymentFeedProps) {
@@ -75,44 +70,50 @@ export function PaymentFeed({
       </div>
       <div className="rounded-lg bg-tertiary/50 border border-white/5 overflow-hidden">
         <div className="max-h-48 overflow-y-auto">
-          <AnimatePresence initial={false}>
-            {items.map((row) => (
-              <motion.div
-                key={row.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 px-4 py-2.5 border-b border-white/5 last:border-0 text-sm"
-              >
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-secondary">Payment confirmed</span>
-                  {row.payer && (
-                    <span className="font-mono text-xs text-secondary truncate">
-                      {shortenAddress(row.payer, 4)}
+          {items.length === 0 ? (
+            <div className="px-4 py-8 text-center text-secondary text-sm">
+              No payments yet. Payments will appear here when customers pay you via your QR or pay link.
+            </div>
+          ) : (
+            <AnimatePresence initial={false}>
+              {items.map((row) => (
+                <motion.div
+                  key={row.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 px-4 py-2.5 border-b border-white/5 last:border-0 text-sm"
+                >
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <span className="text-secondary">Payment confirmed</span>
+                    {row.payer && (
+                      <span className="font-mono text-xs text-secondary truncate">
+                        {shortenAddress(row.payer, 4)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 sm:gap-3 pt-1 sm:pt-0">
+                    <span className="text-right sm:text-left">
+                      <span className="text-accent-green font-semibold">{row.amount} USDC</span>
+                      <span className="text-secondary"> · Total: </span>
+                      <span className="text-accent-green font-semibold">{row.total} USDC</span>
                     </span>
-                  )}
-                </div>
-                <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 sm:gap-3 pt-1 sm:pt-0">
-                  <span className="text-right sm:text-left">
-                    <span className="text-accent-green font-semibold">{row.amount} USDC</span>
-                    <span className="text-secondary"> · Today: </span>
-                    <span className="text-accent-green font-semibold">{row.total} USDC</span>
-                  </span>
-                  {row.txHash && (
-                    <a
-                      href={row.txHash.startsWith('http') ? row.txHash : `${BASESCAN_BASE}${row.txHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-accent-green hover:underline text-xs shrink-0"
-                    >
-                      Basescan
-                    </a>
-                  )}
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
+                    {row.txHash && (
+                      <a
+                        href={row.txHash.startsWith('http') ? row.txHash : `${BASESCAN_BASE}${row.txHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-accent-green hover:underline text-xs shrink-0"
+                      >
+                        Basescan
+                      </a>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          )}
         </div>
       </div>
       <p className="text-xs text-secondary mt-2">

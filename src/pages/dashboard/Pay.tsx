@@ -5,9 +5,7 @@ import { toast } from 'react-toastify';
 import { useAccount, useConnect, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { PayHeader } from '../../components/payment/PayHeader';
 import { AmountSection } from '../../components/payment/AmountSection';
-import { PaymentMethodSection } from '../../components/payment/PaymentMethodSection';
 import { ConfirmPaymentModal } from '../../components/payment/ConfirmPaymentModal';
-import { PaymentSettingsModal } from '../../components/payment/PaymentSettingsModal';
 import { PaymentSuccessModal } from '../../components/payment/PaymentSuccessModal';
 import type { PayMode, PayPayload, PaymentMethod } from '../../components/payment/types';
 import { parseUSDC } from '../../lib/payment';
@@ -43,7 +41,6 @@ export default function PayPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('wallet');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const { address: walletAddress, chain } = useAccount();
   const { connect, connectors, isPending: isConnectPending } = useConnect();
@@ -206,27 +203,7 @@ export default function PayPage() {
       className="max-w-md mx-auto px-4 py-6 sm:px-6 sm:py-8"
     >
       <div className="bg-secondary rounded-2xl border border-white/10 overflow-hidden">
-        <PayHeader parsed={parsed} onToggleSettings={() => setSettingsOpen((open) => !open)} />
-
-        {!walletAddress && (
-          <div className="mx-6 mt-4 p-4 rounded-xl bg-accent-green/10 border border-accent-green/20">
-            <p className="text-sm font-medium text-primary mb-2">No account needed — connect your wallet to pay</p>
-            <p className="text-xs text-secondary mb-3">Use MetaMask, Coinbase Wallet, or any supported wallet. You don’t need to sign up or log in.</p>
-            <div className="flex flex-wrap gap-2">
-              {connectors.map((c) => (
-                <button
-                  key={c.uid}
-                  type="button"
-                  onClick={() => connect({ connector: c })}
-                  disabled={isConnectPending}
-                  className="rounded-full bg-accent-green px-4 py-2 text-sm font-medium text-white hover:bg-accent-green-hover disabled:opacity-50 transition-colors"
-                >
-                  {isConnectPending ? 'Connecting…' : `Connect ${c.name}`}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        <PayHeader parsed={parsed} />
 
         <AmountSection
           mode={mode}
@@ -241,21 +218,82 @@ export default function PayPage() {
         />
 
         <div className="px-6 pb-6 space-y-4">
-          <PaymentMethodSection
-            paymentMethod={paymentMethod}
-            amount={amount}
-            onChangePaymentMethod={setPaymentMethod}
-            onRequestPay={handleRequestPay}
-          />
+          <p className="text-xs font-medium text-secondary">How do you want to pay?</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setPaymentMethod('wallet')}
+              className={`rounded-xl border px-4 py-3 text-left transition-colors ${
+                paymentMethod === 'wallet'
+                  ? 'border-accent-green bg-accent-green/10 text-primary'
+                  : 'border-white/10 bg-tertiary/50 text-secondary hover:border-white/20'
+              }`}
+            >
+              <span className="block text-sm font-semibold">USDC</span>
+              <span className="block text-[10px] mt-0.5 opacity-80">Wallet · Base</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaymentMethod('momo')}
+              className={`rounded-xl border px-4 py-3 text-left transition-colors ${
+                paymentMethod !== 'wallet'
+                  ? 'border-accent-green bg-accent-green/10 text-primary'
+                  : 'border-white/10 bg-tertiary/50 text-secondary hover:border-white/20'
+              }`}
+            >
+              <span className="block text-sm font-semibold">Local</span>
+              <span className="block text-[10px] mt-0.5 opacity-80">Momo · Paystack</span>
+            </button>
+          </div>
+
+          {paymentMethod === 'wallet' ? (
+            <div className="rounded-xl border border-white/10 bg-tertiary/30 p-4 space-y-3">
+              {!walletAddress ? (
+                <button
+                  type="button"
+                  onClick={() => { const c = connectors[0]; if (c) connect({ connector: c }); }}
+                  disabled={isConnectPending}
+                  className="w-full rounded-lg bg-accent-green px-4 py-3 text-sm font-semibold text-white hover:bg-accent-green-hover disabled:opacity-50"
+                >
+                  {isConnectPending ? 'Connecting…' : 'Connect wallet'}
+                </button>
+              ) : (
+                <>
+                  <p className="text-xs text-secondary">Connected · Base</p>
+                  <button
+                    type="button"
+                    disabled={!amount || !vault.trim()}
+                    onClick={handleRequestPay}
+                    className="w-full rounded-lg bg-accent-green px-4 py-3 text-sm font-semibold text-white hover:bg-accent-green-hover disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Pay {amount || '0'} USDC
+                  </button>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-white/10 bg-tertiary/30 p-4 space-y-3">
+              <p className="text-sm font-medium text-primary">Pay with local payment</p>
+              <p className="text-xs text-secondary">Use Mobile Money (Momo), Paystack (card/bank), or other local options. No crypto wallet needed.</p>
+              <ul className="space-y-2 text-xs">
+                <li className="flex items-center gap-2 text-secondary">
+                  <span className="rounded bg-white/10 px-1.5 py-0.5 font-medium">Momo</span>
+                  Mobile Money · Coming soon
+                </li>
+                <li className="flex items-center gap-2 text-secondary">
+                  <span className="rounded bg-white/10 px-1.5 py-0.5 font-medium">Paystack</span>
+                  Card / bank · Coming soon
+                </li>
+              </ul>
+              <p className="text-[10px] text-secondary/80">We’re adding these so you can pay in your local currency. For now, use USDC (wallet) above.</p>
+            </div>
+          )}
         </div>
 
-        {/* Footer */}
         <div className="px-6 py-3 bg-tertiary/50 border-t border-white/10 flex items-center justify-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-[10px] font-medium text-secondary">
-            Base
-          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-[10px] font-medium text-secondary">Base</span>
           <span className="text-secondary/60">·</span>
-          <span className="text-[10px] text-secondary">PayEcho Protocol</span>
+          <span className="text-[10px] text-secondary">PayEcho</span>
         </div>
       </div>
 
@@ -266,13 +304,6 @@ export default function PayPage() {
         merchant={merchant}
         onConfirm={handleConfirmPay}
         onCancel={() => setConfirmOpen(false)}
-      />
-
-      <PaymentSettingsModal
-        open={settingsOpen}
-        paymentMethod={paymentMethod}
-        onChangePaymentMethod={setPaymentMethod}
-        onClose={() => setSettingsOpen(false)}
       />
 
       <PaymentSuccessModal
