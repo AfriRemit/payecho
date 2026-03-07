@@ -1,5 +1,5 @@
 export function getApiBaseUrl(): string {
-  return (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001';
+  return (import.meta.env.VITE_API_URL as string | undefined) ?? 'https://payechobackend.onrender.com';
 }
 
 /**
