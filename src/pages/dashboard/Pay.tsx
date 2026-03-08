@@ -44,6 +44,18 @@ export default function PayPage() {
 
   const { address: walletAddress, chain } = useAccount();
   const { connect, connectors, isPending: isConnectPending } = useConnect();
+
+  // Scan QR → payecho.xyz/pay → connect available wallet → pay. On mobile (camera opens Chrome/Safari) we need WalletConnect so the list of wallets appears; on desktop injected works (e.g. MetaMask extension).
+  const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod|webOS|Mobi|BlackBerry|IEMobile/i.test(navigator.userAgent);
+  const connectConnector = useMemo(() => {
+    const wc = connectors.find((c) => c.id === 'walletConnect');
+    const injected = connectors.find((c) => c.id === 'injected');
+    const coinbase = connectors.find((c) => c.id?.toLowerCase().includes('coinbase'));
+    if (isMobile) return wc ?? injected ?? coinbase ?? connectors[0];
+    return injected ?? wc ?? coinbase ?? connectors[0];
+  }, [connectors, isMobile]);
+  const hasWalletConnect = useMemo(() => connectors.some((c) => c.id === 'walletConnect'), [connectors]);
+  const openInWalletAppUrl = typeof window !== 'undefined' ? `https://link.metamask.io/dapp/${encodeURIComponent(window.location.href)}` : '';
   const { switchChain, isPending: isSwitchPending } = useSwitchChain();
   const contracts = getContracts(chain?.id ?? baseSepolia.id);
   const targetChainId = baseSepolia.id; // MVP: Base Sepolia
@@ -265,21 +277,36 @@ export default function PayPage() {
           {paymentMethod === 'wallet' ? (
             <div className="rounded-xl border border-white/10 bg-tertiary/30 p-4 space-y-3">
               {!walletAddress ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    // Desktop: injected = MetaMask extension. Mobile: WalletConnect so user can pick MetaMask app. No account required.
-                    const isMobile = /Android|iPhone|iPad|iPod|webOS|Mobi/i.test(navigator.userAgent);
-                    const injected = connectors[0]; // injected() is first in wagmi config (MetaMask, etc.)
-                    const wc = connectors.find((c) => (c as { id?: string }).id === 'walletConnect');
-                    const c = isMobile && wc ? wc : injected;
-                    if (c) connect({ connector: c });
-                  }}
-                  disabled={isConnectPending}
-                  className="w-full rounded-lg bg-accent-green px-4 py-3 text-sm font-semibold text-white hover:bg-accent-green-hover disabled:opacity-50"
-                >
-                  {isConnectPending ? 'Connecting…' : 'Connect wallet'}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      connect(
+                        { connector: connectConnector },
+                        {
+                          onError: (err) => {
+                            const msg = err?.message ?? 'Connection failed';
+                            toast.error(msg);
+                          },
+                        },
+                      );
+                    }}
+                    disabled={isConnectPending}
+                    className="w-full rounded-lg bg-accent-green px-4 py-3 text-sm font-semibold text-white hover:bg-accent-green-hover disabled:opacity-50 active:scale-[0.98] touch-manipulation"
+                  >
+                    {isConnectPending ? 'Connecting…' : 'Connect wallet'}
+                  </button>
+                  {isMobile && hasWalletConnect && (
+                    <p className="text-[11px] text-secondary text-center">
+                      Choose your wallet in the list, then approve in your wallet app.
+                    </p>
+                  )}
+                  {isMobile && !hasWalletConnect && (
+                    <p className="text-[11px] text-secondary text-center">
+                      <a href={openInWalletAppUrl} target="_blank" rel="noopener noreferrer" className="text-accent-green hover:underline font-medium">Open in your wallet app</a> to connect and pay (e.g. MetaMask → Browser).
+                    </p>
+                  )}
+                </>
               ) : needsSwitch ? (
                 <>
                   <p className="text-xs text-secondary">Wrong network. Switch to Base Sepolia to pay with USDC.</p>
