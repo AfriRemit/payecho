@@ -194,8 +194,8 @@ export default function PayPage() {
   useEffect(() => {
     const pending = pendingPayAfterSwitchRef.current;
     if (!pending || !walletAddress) return;
-    const onCorrectChain = chain === undefined || Number(chain?.id) === targetChainId;
-    if (!onCorrectChain) return;
+    // Only run when chain is defined so wallet has chain context for both approve and acceptPayment.
+    if (!chain || Number(chain.id) !== targetChainId) return;
     pendingPayAfterSwitchRef.current = null;
     runApproveAndPay(pending.vault, pending.merchant, pending.amountWei);
   }, [chain?.id, targetChainId, walletAddress]);
@@ -204,8 +204,8 @@ export default function PayPage() {
     if (!approveHash || !isApproveSuccess || acceptPaymentSentRef.current) return;
     const pending = pendingPayRef.current;
     if (!pending) return;
-    const onCorrectChain = chain === undefined || Number(chain?.id) === targetChainId;
-    if (!onCorrectChain) return; // only send acceptPayment when on Base Sepolia
+    // Require chain to be defined so the wallet has chain context (avoids "chain: undefined (id: 84532)").
+    if (!chain || Number(chain.id) !== targetChainId) return;
     acceptPaymentSentRef.current = true;
     writeAcceptPayment(
       {
@@ -213,7 +213,7 @@ export default function PayPage() {
         abi: BANK_VAULT_ABI,
         functionName: 'acceptPayment',
         args: [pending.merchant as `0x${string}`, pending.amountWei, ZERO_REF],
-        chainId: baseSepolia.id,
+        chainId: chain.id,
       },
       {
         onError: (e) => {
