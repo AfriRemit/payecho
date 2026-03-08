@@ -31,6 +31,12 @@ const ERC20_ABI = [
 const ZERO_REF: `0x${string}` = '0x0000000000000000000000000000000000000000000000000000000000000000';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
+/** Opens the current page in MetaMask mobile's in-app browser so "Connect wallet" works (no provider in Chrome/Safari on mobile). */
+function getMetaMaskDappUrl(): string {
+  if (typeof window === 'undefined') return '';
+  return `https://link.metamask.io/dapp/${encodeURIComponent(window.location.href)}`;
+}
+
 /**
  * Customer payment screen. Scan QR → /pay?payload=... or /pay?vault=&merchant=&amount=
  * BankVault: vault = pool address, merchant = wallet to credit. Customer approves USDC then BankVault.acceptPayment(merchant, amount, ref).
@@ -113,6 +119,21 @@ export default function PayPage() {
       return;
     }
     setConfirmOpen(true);
+  };
+
+  const handleConnectWallet = () => {
+    connect(
+      { connector: connectConnector },
+      {
+        onError: (err) => {
+          const msg = err?.message ?? 'Connection failed';
+          toast.error(msg);
+          if (isMobile && /provider|connector|not found|no provider/i.test(msg)) {
+            toast.info('Open this page in MetaMask’s in-app browser, then tap Connect wallet.', { autoClose: 10000 });
+          }
+        },
+      },
+    );
   };
 
   const handleConfirmPay = async () => {
@@ -287,14 +308,7 @@ export default function PayPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        connect(
-                          { connector: connectConnector },
-                          {
-                            onError: (err) => {
-                              toast.error(err?.message ?? 'Connection failed');
-                            },
-                          },
-                        );
+                        handleConnectWallet();
                         setWalletMenuOpen(false);
                       }}
                       disabled={isConnectPending}
@@ -359,18 +373,24 @@ export default function PayPage() {
             <div className="rounded-xl border border-white/10 bg-tertiary/30 p-4 space-y-3">
               {!walletAddress ? (
                 <>
+                  {isMobile && (
+                    <a
+                      href={getMetaMaskDappUrl()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full rounded-lg bg-[#E8831D] px-4 py-3 text-sm font-semibold text-white hover:bg-[#d97514] active:scale-[0.98] touch-manipulation flex items-center justify-center gap-2"
+                    >
+                      Open in MetaMask
+                    </a>
+                  )}
+                  <p className="text-xs text-secondary">
+                    {isMobile
+                      ? 'Tap above to open this page in MetaMask’s browser, then tap Connect wallet below.'
+                      : 'Connect your wallet to pay with USDC.'}
+                  </p>
                   <button
                     type="button"
-                    onClick={() => {
-                      connect(
-                        { connector: connectConnector },
-                        {
-                          onError: (err) => {
-                            toast.error(err?.message ?? 'Connection failed');
-                          },
-                        },
-                      );
-                    }}
+                    onClick={handleConnectWallet}
                     disabled={isConnectPending}
                     className="w-full rounded-lg bg-accent-green px-4 py-3 text-sm font-semibold text-white hover:bg-accent-green-hover disabled:opacity-50 active:scale-[0.98] touch-manipulation"
                   >
