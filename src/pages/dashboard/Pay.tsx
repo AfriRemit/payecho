@@ -2,8 +2,7 @@ import { useMemo, useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
-import { useAccount, useConnect, useSwitchChain, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { PayHeader } from '../../components/payment/PayHeader';
+import { useAccount, useConnect, useDisconnect, useSwitchChain, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { AmountSection } from '../../components/payment/AmountSection';
 import { ConfirmPaymentModal } from '../../components/payment/ConfirmPaymentModal';
 import { PaymentSuccessModal } from '../../components/payment/PaymentSuccessModal';
@@ -13,6 +12,7 @@ import { getContracts } from '../../lib/contracts';
 import { getApiBaseUrl } from '../../lib/api';
 import { BANK_VAULT_ABI } from '../../lib/ABI/BankVault_ABI';
 import { baseSepolia } from 'wagmi/chains';
+import { Settings } from 'lucide-react';
 
 const ERC20_ABI = [
   {
@@ -41,9 +41,11 @@ export default function PayPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('wallet');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
+  const [walletMenuOpen, setWalletMenuOpen] = useState(false);
 
   const { address: walletAddress, chain } = useAccount();
   const { connect, connectors, isPending: isConnectPending } = useConnect();
+  const { disconnect } = useDisconnect();
 
   // Scan QR → payecho.xyz/pay → connect available wallet → pay. On mobile (camera opens Chrome/Safari) we need WalletConnect so the list of wallets appears; on desktop injected works (e.g. MetaMask extension).
   const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod|webOS|Mobi|BlackBerry|IEMobile/i.test(navigator.userAgent);
@@ -69,6 +71,7 @@ export default function PayPage() {
 
   const pendingPayRef = useRef<{ vault: string; merchant: string; amountWei: bigint } | null>(null);
   const acceptPaymentSentRef = useRef(false);
+  const walletMenuRef = useRef<HTMLDivElement>(null);
 
   const parsed = useMemo<PayPayload | null>(() => {
     const raw = searchParams.get('payload');
@@ -217,6 +220,15 @@ export default function PayPage() {
     speak();
   }, [payHash, isPaySuccess, amount, resetApprove, resetPay]);
 
+  useEffect(() => {
+    if (!walletMenuOpen) return;
+    const onOutside = (e: MouseEvent) => {
+      if (walletMenuRef.current && !walletMenuRef.current.contains(e.target as Node)) setWalletMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onOutside);
+    return () => document.removeEventListener('mousedown', onOutside);
+  }, [walletMenuOpen]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -224,9 +236,64 @@ export default function PayPage() {
       className="max-w-md mx-auto px-4 py-6 sm:px-6 sm:py-8"
     >
       <div className="bg-secondary rounded-2xl border border-white/10 overflow-hidden">
-        <PayHeader parsed={parsed} />
+        <div className="px-6 py-5 border-b border-white/10 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold text-primary">{parsed ? 'Pay merchant' : 'Pay'}</h2>
+            <p className="text-sm text-secondary mt-0.5">Pay with USDC (wallet) or local payment (Mobile Money, Paystack).</p>
+          </div>
+          <div className="relative shrink-0" ref={walletMenuRef}>
+            <button
+              type="button"
+              onClick={() => setWalletMenuOpen((o) => !o)}
+              className="p-2 rounded-lg text-secondary hover:text-primary hover:bg-white/10 transition-colors touch-manipulation"
+              aria-label="Wallet settings"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+            {walletMenuOpen && (
+              <div className="absolute right-0 top-full mt-1 py-1 min-w-[160px] rounded-xl border border-white/10 bg-secondary shadow-lg z-10">
+                {walletAddress ? (
+                  <>
+                    <p className="px-3 py-2 text-xs text-secondary truncate max-w-[200px]" title={walletAddress}>
+                      {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        disconnect();
+                        setWalletMenuOpen(false);
+                      }}
+                      className="w-full px-3 py-2 text-left text-sm text-primary hover:bg-white/10"
+                    >
+                      Disconnect
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      connect(
+                        { connector: connectConnector },
+                        {
+                          onError: (err) => {
+                            toast.error(err?.message ?? 'Connection failed');
+                          },
+                        },
+                      );
+                      setWalletMenuOpen(false);
+                    }}
+                    disabled={isConnectPending}
+                    className="w-full px-3 py-2 text-left text-sm text-primary hover:bg-white/10 disabled:opacity-50"
+                  >
+                    {isConnectPending ? 'Connecting…' : 'Connect wallet'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
 
-        {!parsed && (
+        {!parsed && isMobile && (
           <div className="mx-6 mt-2 rounded-xl bg-tertiary/50 border border-white/10 px-4 py-3">
             <p className="text-sm font-medium text-primary">Scan to pay</p>
             <p className="text-xs text-secondary mt-0.5">Open your camera or QR app and scan the merchant&apos;s PayEcho QR code. You&apos;ll be taken here with the amount and merchant pre-filled. No account required.</p>
