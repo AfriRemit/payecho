@@ -21,8 +21,17 @@ interface DashboardData {
   creditLimit: number;
 }
 
+interface LoanItem {
+  principal: string;
+  outstanding: string;
+  issuedAt: string;
+  status: string;
+  repayments?: Array<{ amount: string; date: string; remaining: string }>;
+}
+
 export default function Lending() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [loans, setLoans] = useState<LoanItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { address, getToken } = useAuth();
@@ -30,6 +39,7 @@ export default function Lending() {
   const loadData = useCallback(async () => {
     if (!address) {
       setData(null);
+      setLoans([]);
       setLoading(false);
       return;
     }
@@ -37,14 +47,22 @@ export default function Lending() {
     setError(null);
     try {
       const token = await getToken();
-      const res = await apiGetJson<DashboardData>(
-        `/api/merchants/${address.toLowerCase()}/dashboard`,
-        { token },
-      );
-      setData(res);
+      const [dashboardRes, loansRes] = await Promise.all([
+        apiGetJson<DashboardData>(
+          `/api/merchants/${address.toLowerCase()}/dashboard`,
+          { token },
+        ),
+        apiGetJson<LoanItem[]>(
+          `/api/merchants/${address.toLowerCase()}/loans`,
+          { token },
+        ),
+      ]);
+      setData(dashboardRes);
+      setLoans(Array.isArray(loansRes) ? loansRes : []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load lending data');
       setData(null);
+      setLoans([]);
     } finally {
       setLoading(false);
     }
@@ -68,6 +86,8 @@ export default function Lending() {
     ? (creditLimit > 0 ? Number(creditLimit) : avgMonthly)
     : 0;
   const nextTierScore = NEXT_TIER_SCORE[currentTier] ?? 300;
+  const activeLoan = loans.find((l) => l.status === 'active');
+  const repayments = activeLoan?.repayments ?? [];
 
   return (
     <motion.div
@@ -98,6 +118,7 @@ export default function Lending() {
             currentTier={currentTier}
             maxLoanUsdc={maxLoanUsdc}
             outstandingBalance={lockedInLoan}
+            repayments={repayments}
           />
           <MerchantNFT tier={currentTier} score={creditScore} nextTierScore={nextTierScore} />
         </div>

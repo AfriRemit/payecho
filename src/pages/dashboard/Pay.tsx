@@ -2,7 +2,7 @@ import { useMemo, useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
-import { useAccount, useConnect, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useConnect, useSwitchChain, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { PayHeader } from '../../components/payment/PayHeader';
 import { AmountSection } from '../../components/payment/AmountSection';
 import { ConfirmPaymentModal } from '../../components/payment/ConfirmPaymentModal';
@@ -44,7 +44,12 @@ export default function PayPage() {
 
   const { address: walletAddress, chain } = useAccount();
   const { connect, connectors, isPending: isConnectPending } = useConnect();
+  const { switchChain, isPending: isSwitchPending } = useSwitchChain();
   const contracts = getContracts(chain?.id ?? baseSepolia.id);
+  const targetChainId = baseSepolia.id; // MVP: Base Sepolia
+  const isCorrectChain = !!chain && chain.id === targetChainId;
+  const needsSwitch = !!walletAddress && !!chain && !isCorrectChain;
+
   const { writeContract: writeApprove, data: approveHash, isPending: _isApprovePending, reset: resetApprove } = useWriteContract();
   const { writeContract: writeAcceptPayment, data: payHash, isPending: _isPayPending, reset: resetPay } = useWriteContract();
   const { isLoading: _isApproveConfirming, isSuccess: isApproveSuccess } = useWaitForTransactionReceipt({ hash: approveHash });
@@ -98,6 +103,10 @@ export default function PayPage() {
     }
     if (!walletAddress) {
       toast.error('Connect your wallet to pay');
+      return;
+    }
+    if (!isCorrectChain) {
+      toast.error('Switch to Base Sepolia to pay');
       return;
     }
     if (!merchant.trim()) {
@@ -205,6 +214,13 @@ export default function PayPage() {
       <div className="bg-secondary rounded-2xl border border-white/10 overflow-hidden">
         <PayHeader parsed={parsed} />
 
+        {!parsed && (
+          <div className="mx-6 mt-2 rounded-xl bg-tertiary/50 border border-white/10 px-4 py-3">
+            <p className="text-sm font-medium text-primary">Scan to pay</p>
+            <p className="text-xs text-secondary mt-0.5">Open your camera or QR app and scan the merchant&apos;s PayEcho QR code. You&apos;ll be taken here with the amount and merchant pre-filled. No account required.</p>
+          </div>
+        )}
+
         <AmountSection
           mode={mode}
           amount={amount}
@@ -251,15 +267,34 @@ export default function PayPage() {
               {!walletAddress ? (
                 <button
                   type="button"
-                  onClick={() => { const c = connectors[0]; if (c) connect({ connector: c }); }}
+                  onClick={() => {
+                    // Desktop: injected = MetaMask extension. Mobile: WalletConnect so user can pick MetaMask app. No account required.
+                    const isMobile = /Android|iPhone|iPad|iPod|webOS|Mobi/i.test(navigator.userAgent);
+                    const injected = connectors[0]; // injected() is first in wagmi config (MetaMask, etc.)
+                    const wc = connectors.find((c) => (c as { id?: string }).id === 'walletConnect');
+                    const c = isMobile && wc ? wc : injected;
+                    if (c) connect({ connector: c });
+                  }}
                   disabled={isConnectPending}
                   className="w-full rounded-lg bg-accent-green px-4 py-3 text-sm font-semibold text-white hover:bg-accent-green-hover disabled:opacity-50"
                 >
                   {isConnectPending ? 'Connecting…' : 'Connect wallet'}
                 </button>
+              ) : needsSwitch ? (
+                <>
+                  <p className="text-xs text-secondary">Wrong network. Switch to Base Sepolia to pay with USDC.</p>
+                  <button
+                    type="button"
+                    onClick={() => switchChain({ chainId: targetChainId })}
+                    disabled={isSwitchPending}
+                    className="w-full rounded-lg bg-amber-500 px-4 py-3 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
+                  >
+                    {isSwitchPending ? 'Switching…' : 'Switch to Base Sepolia'}
+                  </button>
+                </>
               ) : (
                 <>
-                  <p className="text-xs text-secondary">Connected · Base</p>
+                  <p className="text-xs text-secondary">Connected · Base Sepolia</p>
                   <button
                     type="button"
                     disabled={!amount || !vault.trim()}
