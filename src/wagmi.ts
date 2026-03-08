@@ -1,16 +1,11 @@
 import { http, createConfig } from 'wagmi';
 import { base, baseSepolia } from 'wagmi/chains';
-import { coinbaseWallet, injected, walletConnect } from 'wagmi/connectors';
-
-const walletConnectProjectId = import.meta.env.VITE_PUBLIC_WALLETCONNECT_PROJECT_ID ?? '';
+import { coinbaseWallet, injected } from 'wagmi/connectors';
 
 export function getConfig() {
-  // Injected first = MetaMask (and other extension wallets) on desktop. WalletConnect for mobile (user can pick MetaMask in modal).
+  // Connect to the user's installed wallet (MetaMask, Brave, etc.). No WalletConnect.
   const connectors = [
-    injected(), // MetaMask, Brave, etc. — no account needed
-    ...(walletConnectProjectId
-      ? [walletConnect({ projectId: walletConnectProjectId, showQrModal: true })]
-      : []),
+    injected(),
     coinbaseWallet({
       appName: 'PayEcho',
       preference: 'smartWalletOnly',

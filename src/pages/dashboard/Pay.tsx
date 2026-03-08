@@ -2,15 +2,16 @@ import { useMemo, useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
-import { useAccount, useConnect, useDisconnect, useSwitchChain, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useConnect, useDisconnect, useSwitchChain, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import { AmountSection } from '../../components/payment/AmountSection';
 import { ConfirmPaymentModal } from '../../components/payment/ConfirmPaymentModal';
 import { PaymentSuccessModal } from '../../components/payment/PaymentSuccessModal';
 import type { PayMode, PayPayload, PaymentMethod } from '../../components/payment/types';
-import { parseUSDC } from '../../lib/payment';
+import { parseUSDC, formatUSDC } from '../../lib/payment';
 import { getContracts } from '../../lib/contracts';
 import { getApiBaseUrl } from '../../lib/api';
 import { BANK_VAULT_ABI } from '../../lib/ABI/BankVault_ABI';
+import { ERC20_ABI as ERC20_FULL_ABI } from '../../lib/ABI/ERC20_ABI';
 import { baseSepolia } from 'wagmi/chains';
 import { Settings } from 'lucide-react';
 
@@ -47,16 +48,13 @@ export default function PayPage() {
   const { connect, connectors, isPending: isConnectPending } = useConnect();
   const { disconnect } = useDisconnect();
 
-  // Scan QR → payecho.xyz/pay → connect available wallet → pay. On mobile (camera opens Chrome/Safari) we need WalletConnect so the list of wallets appears; on desktop injected works (e.g. MetaMask extension).
+  // Connect to the user's installed wallet (injected = MetaMask, Brave, etc.). On mobile browser, if no wallet: open in MetaMask app.
   const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod|webOS|Mobi|BlackBerry|IEMobile/i.test(navigator.userAgent);
   const connectConnector = useMemo(() => {
-    const wc = connectors.find((c) => c.id === 'walletConnect');
     const injected = connectors.find((c) => c.id === 'injected');
     const coinbase = connectors.find((c) => c.id?.toLowerCase().includes('coinbase'));
-    if (isMobile) return wc ?? injected ?? coinbase ?? connectors[0];
-    return injected ?? wc ?? coinbase ?? connectors[0];
-  }, [connectors, isMobile]);
-  const hasWalletConnect = useMemo(() => connectors.some((c) => c.id === 'walletConnect'), [connectors]);
+    return injected ?? coinbase ?? connectors[0];
+  }, [connectors]);
   const openInWalletAppUrl = typeof window !== 'undefined' ? `https://link.metamask.io/dapp/${encodeURIComponent(window.location.href)}` : '';
   const { switchChain, isPending: isSwitchPending } = useSwitchChain();
   const contracts = getContracts(chain?.id ?? baseSepolia.id);
@@ -66,6 +64,13 @@ export default function PayPage() {
 
   const { writeContract: writeApprove, data: approveHash, isPending: _isApprovePending, reset: resetApprove } = useWriteContract();
   const { writeContract: writeAcceptPayment, data: payHash, isPending: _isPayPending, reset: resetPay } = useWriteContract();
+  const { data: usdcBalanceRaw } = useReadContract({
+    address: contracts.usdcAddress as `0x${string}`,
+    abi: ERC20_FULL_ABI,
+    functionName: 'balanceOf',
+    args: walletAddress ? [walletAddress] : undefined,
+  });
+  const usdcBalance = useMemo(() => (usdcBalanceRaw !== undefined ? formatUSDC(usdcBalanceRaw) : null), [usdcBalanceRaw]);
   const { isLoading: _isApproveConfirming, isSuccess: isApproveSuccess } = useWaitForTransactionReceipt({ hash: approveHash });
   const { isLoading: _isPayConfirming, isSuccess: isPaySuccess } = useWaitForTransactionReceipt({ hash: payHash });
 
@@ -98,9 +103,16 @@ export default function PayPage() {
   const vault = parsed?.vault ?? manualVaultAddress;
   const merchant = parsed?.merchant ?? searchParams.get('merchant') ?? manualMerchantAddress;
 
+  const amountWeiForCheck = useMemo(() => parseUSDC(amount || '0'), [amount]);
+  const hasInsufficientBalance = walletAddress && usdcBalanceRaw !== undefined && amountWeiForCheck > 0n && usdcBalanceRaw < amountWeiForCheck;
+
   const handleRequestPay = () => {
     if (!amount || paymentMethod !== 'wallet') return;
     if (!parsed && !vault.trim()) return;
+    if (hasInsufficientBalance) {
+      toast.error('Insufficient USDC balance');
+      return;
+    }
     setConfirmOpen(true);
   };
 
@@ -126,6 +138,10 @@ export default function PayPage() {
     }
     if (!merchant.trim()) {
       toast.error('Merchant address required (scan QR or enter vault + merchant)');
+      return;
+    }
+    if (usdcBalanceRaw !== undefined && amountWei > usdcBalanceRaw) {
+      toast.error('Insufficient USDC balance');
       return;
     }
     pendingPayRef.current = { vault, merchant, amountWei };
@@ -269,18 +285,6 @@ export default function PayPage() {
                     </button>
                   </>
                 ) : (
-                  isMobile && !hasWalletConnect ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setWalletMenuOpen(false);
-                        window.location.href = openInWalletAppUrl;
-                      }}
-                      className="w-full px-3 py-2 text-left text-sm text-primary hover:bg-white/10"
-                    >
-                      Connect wallet
-                    </button>
-                  ) : (
                     <button
                       type="button"
                       onClick={() => {
@@ -289,7 +293,7 @@ export default function PayPage() {
                           {
                             onError: (err) => {
                               const msg = err?.message ?? 'Connection failed';
-                              if (/provider not found/i.test(msg)) window.location.href = openInWalletAppUrl;
+                              if (/provider not found/i.test(msg) && isMobile) window.location.href = openInWalletAppUrl;
                               else toast.error(msg);
                             },
                           },
@@ -301,7 +305,6 @@ export default function PayPage() {
                     >
                       {isConnectPending ? 'Connecting…' : 'Connect wallet'}
                     </button>
-                  )
                 )}
               </div>
             )}
@@ -360,52 +363,33 @@ export default function PayPage() {
             <div className="rounded-xl border border-white/10 bg-tertiary/30 p-4 space-y-3">
               {!walletAddress ? (
                 <>
-                  {isMobile && !hasWalletConnect ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          window.location.href = openInWalletAppUrl;
-                        }}
-                        className="block w-full rounded-lg bg-accent-green px-4 py-3 text-sm font-semibold text-white hover:bg-accent-green-hover text-center active:scale-[0.98] touch-manipulation"
-                      >
-                        Connect wallet
-                      </button>
-                      <p className="text-[11px] text-secondary text-center">
-                        Opens MetaMask app to connect. Approve there, then return here to pay.
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          connect(
-                            { connector: connectConnector },
-                            {
-                              onError: (err) => {
-                                const msg = err?.message ?? 'Connection failed';
-                                const isProviderNotFound = /provider not found/i.test(msg);
-                                if (isProviderNotFound) {
-                                  window.location.href = openInWalletAppUrl;
-                                  return;
-                                }
-                                toast.error(msg);
-                              },
-                            },
-                          );
-                        }}
-                        disabled={isConnectPending}
-                        className="w-full rounded-lg bg-accent-green px-4 py-3 text-sm font-semibold text-white hover:bg-accent-green-hover disabled:opacity-50 active:scale-[0.98] touch-manipulation"
-                      >
-                        {isConnectPending ? 'Connecting…' : 'Connect wallet'}
-                      </button>
-                      {isMobile && hasWalletConnect && (
-                        <p className="text-[11px] text-secondary text-center">
-                          Choose your wallet in the list, then approve in your wallet app.
-                        </p>
-                      )}
-                    </>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      connect(
+                        { connector: connectConnector },
+                        {
+                          onError: (err) => {
+                            const msg = err?.message ?? 'Connection failed';
+                            if (/provider not found/i.test(msg) && isMobile) window.location.href = openInWalletAppUrl;
+                            else toast.error(msg);
+                          },
+                        },
+                      );
+                    }}
+                    disabled={isConnectPending}
+                    className="w-full rounded-lg bg-accent-green px-4 py-3 text-sm font-semibold text-white hover:bg-accent-green-hover disabled:opacity-50 active:scale-[0.98] touch-manipulation"
+                  >
+                    {isConnectPending ? 'Connecting…' : 'Connect wallet'}
+                  </button>
+                  {isMobile && (
+                    <p className="text-[11px] text-secondary text-center">
+                      No wallet in this browser?{' '}
+                      <button type="button" onClick={() => { window.location.href = openInWalletAppUrl; }} className="text-accent-green hover:underline font-medium">
+                        Open in MetaMask app
+                      </button>{' '}
+                      to connect and pay.
+                    </p>
                   )}
                 </>
               ) : needsSwitch ? (
@@ -423,9 +407,17 @@ export default function PayPage() {
               ) : (
                 <>
                   <p className="text-xs text-secondary">Connected · Base Sepolia</p>
+                  {usdcBalance !== null && (
+                    <p className="text-sm font-medium text-primary">
+                      Balance: <span className="text-accent-green">{usdcBalance} USDC</span>
+                    </p>
+                  )}
+                  {hasInsufficientBalance && (
+                    <p className="text-xs text-amber-500">Insufficient USDC balance. You need {amount} USDC.</p>
+                  )}
                   <button
                     type="button"
-                    disabled={!amount || !vault.trim()}
+                    disabled={!amount || !vault.trim() || !!hasInsufficientBalance}
                     onClick={handleRequestPay}
                     className="w-full rounded-lg bg-accent-green px-4 py-3 text-sm font-semibold text-white hover:bg-accent-green-hover disabled:opacity-50 disabled:cursor-not-allowed"
                   >
