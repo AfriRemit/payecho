@@ -1,7 +1,10 @@
 import { http, fallback, createConfig } from 'wagmi';
 import { base, baseSepolia } from 'wagmi/chains';
-import { coinbaseWallet, injected } from 'wagmi/connectors';
+import { coinbaseWallet, injected, walletConnect } from 'wagmi/connectors';
 import { BASE_SEPOLIA_RPC } from './lib/base-rpc';
+
+// WalletConnect: popup/modal flow on mobile (wallet app opens to connect & sign). Get projectId at https://cloud.reown.com
+const walletConnectProjectId = (import.meta.env.VITE_WALLETCONNECT_PROJECT_ID as string)?.trim() ?? '';
 
 // Multiple RPC endpoints: when one returns "too many errors" / rate limit, the next is tried.
 const baseSepoliaTransport = fallback([
@@ -11,7 +14,6 @@ const baseSepoliaTransport = fallback([
 ]);
 
 export function getConfig() {
-  // Connect to the user's installed wallet (MetaMask, Brave, etc.). No WalletConnect.
   const connectors = [
     injected(),
     coinbaseWallet({
@@ -19,6 +21,20 @@ export function getConfig() {
       preference: 'smartWalletOnly',
       version: '4',
     }),
+    ...(walletConnectProjectId
+      ? [
+          walletConnect({
+            projectId: walletConnectProjectId,
+            metadata: {
+              name: 'PayEcho',
+              description: 'Pay with USDC on Base',
+              url: typeof window !== 'undefined' ? window.location.origin : '',
+              icons: [],
+            },
+            showQrModal: true,
+          }),
+        ]
+      : []),
   ];
 
   return createConfig({

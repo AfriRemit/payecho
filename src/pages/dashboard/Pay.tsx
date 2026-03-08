@@ -31,10 +31,13 @@ const ERC20_ABI = [
 const ZERO_REF: `0x${string}` = '0x0000000000000000000000000000000000000000000000000000000000000000';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-/** Opens the current page in MetaMask mobile's in-app browser so "Connect wallet" works (no provider in Chrome/Safari on mobile). */
-function getMetaMaskDappUrl(): string {
-  if (typeof window === 'undefined') return '';
-  return `https://link.metamask.io/dapp/${encodeURIComponent(window.location.href)}`;
+function connectorLabel(connector: { id?: string; name?: string }): string {
+  const id = (connector.id ?? '').toLowerCase();
+  const name = connector.name ?? '';
+  if (id.includes('injected') || id.includes('metamask')) return 'Browser wallet (MetaMask, Brave…)';
+  if (id.includes('coinbase')) return 'Coinbase Wallet';
+  if (id.includes('walletconnect') || id.includes('wallet_connect')) return 'WalletConnect (MetaMask app, mobile)';
+  return name || 'Wallet';
 }
 
 /**
@@ -49,6 +52,7 @@ export default function PayPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
   const [walletMenuOpen, setWalletMenuOpen] = useState(false);
+  const [connectPickerOpen, setConnectPickerOpen] = useState(false);
 
   const { address: walletAddress, chain } = useAccount();
   const { connect, connectors, isPending: isConnectPending } = useConnect();
@@ -59,7 +63,8 @@ export default function PayPage() {
   const connectConnector = useMemo(() => {
     const injected = connectors.find((c) => c.id === 'injected');
     const coinbase = connectors.find((c) => c.id?.toLowerCase().includes('coinbase'));
-    return injected ?? coinbase ?? connectors[0];
+    const wc = connectors.find((c) => c.id?.toLowerCase().includes('walletconnect') || c.id?.toLowerCase().includes('wallet_connect'));
+    return injected ?? coinbase ?? wc ?? connectors[0];
   }, [connectors]);
   const { switchChain, isPending: isSwitchPending } = useSwitchChain();
   const contracts = getContracts(chain?.id ?? baseSepolia.id);
@@ -121,16 +126,14 @@ export default function PayPage() {
     setConfirmOpen(true);
   };
 
-  const handleConnectWallet = () => {
+  const handleConnectWallet = (connector?: typeof connectors[number]) => {
+    const c = connector ?? connectConnector;
     connect(
-      { connector: connectConnector },
+      { connector: c },
       {
+        onSuccess: () => setConnectPickerOpen(false),
         onError: (err) => {
-          const msg = err?.message ?? 'Connection failed';
-          toast.error(msg);
-          if (isMobile && /provider|connector|not found|no provider/i.test(msg)) {
-            toast.info('Open this page in MetaMask’s in-app browser, then tap Connect wallet.', { autoClose: 10000 });
-          }
+          toast.error(err?.message ?? 'Connection failed');
         },
       },
     );
@@ -308,8 +311,8 @@ export default function PayPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        handleConnectWallet();
                         setWalletMenuOpen(false);
+                        setConnectPickerOpen(true);
                       }}
                       disabled={isConnectPending}
                       className="w-full px-3 py-2 text-left text-sm text-primary hover:bg-white/10 disabled:opacity-50"
@@ -373,29 +376,38 @@ export default function PayPage() {
             <div className="rounded-xl border border-white/10 bg-tertiary/30 p-4 space-y-3">
               {!walletAddress ? (
                 <>
-                  {isMobile && (
-                    <a
-                      href={getMetaMaskDappUrl()}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full rounded-lg bg-[#E8831D] px-4 py-3 text-sm font-semibold text-white hover:bg-[#d97514] active:scale-[0.98] touch-manipulation flex items-center justify-center gap-2"
-                    >
-                      Open in MetaMask
-                    </a>
-                  )}
-                  <p className="text-xs text-secondary">
-                    {isMobile
-                      ? 'Tap above to open this page in MetaMask’s browser, then tap Connect wallet below.'
-                      : 'Connect your wallet to pay with USDC.'}
-                  </p>
+                  <p className="text-xs text-secondary">Connect your wallet to pay with USDC.</p>
                   <button
                     type="button"
-                    onClick={handleConnectWallet}
+                    onClick={() => setConnectPickerOpen(true)}
                     disabled={isConnectPending}
                     className="w-full rounded-lg bg-accent-green px-4 py-3 text-sm font-semibold text-white hover:bg-accent-green-hover disabled:opacity-50 active:scale-[0.98] touch-manipulation"
                   >
                     {isConnectPending ? 'Connecting…' : 'Connect wallet'}
                   </button>
+                  {connectPickerOpen && (
+                    <div className="rounded-xl border border-white/10 bg-tertiary/50 p-3 space-y-2">
+                      <p className="text-xs font-medium text-secondary">Choose wallet</p>
+                      {connectors.map((c) => (
+                        <button
+                          key={c.uid}
+                          type="button"
+                          onClick={() => handleConnectWallet(c)}
+                          disabled={isConnectPending}
+                          className="w-full rounded-lg border border-white/10 bg-secondary px-4 py-3 text-sm font-medium text-primary hover:bg-white/10 disabled:opacity-50 text-left"
+                        >
+                          {connectorLabel(c)}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setConnectPickerOpen(false)}
+                        className="w-full rounded-lg text-xs text-secondary hover:text-primary"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
                 </>
               ) : needsSwitch ? (
                 <>
