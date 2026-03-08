@@ -59,9 +59,9 @@ export default function PayPage() {
   }, [connectors, isMobile]);
   const { switchChain, isPending: isSwitchPending } = useSwitchChain();
   const contracts = getContracts(chain?.id ?? baseSepolia.id);
-  const targetChainId = baseSepolia.id; // MVP: Base Sepolia
-  const isCorrectChain = !!chain && chain.id === targetChainId;
-  const needsSwitch = !!walletAddress && !!chain && !isCorrectChain;
+  const targetChainId = baseSepolia.id; // MVP: Base Sepolia (84532)
+  // When chain is undefined (e.g. connector slow to report), allow pay since we only support Base Sepolia.
+  const needsSwitch = !!walletAddress && chain !== undefined && Number(chain.id) !== targetChainId;
 
   const { writeContract: writeApprove, data: approveHash, isPending: _isApprovePending, reset: resetApprove } = useWriteContract();
   const { writeContract: writeAcceptPayment, data: payHash, isPending: _isPayPending, reset: resetPay } = useWriteContract();
@@ -76,6 +76,7 @@ export default function PayPage() {
   const { isLoading: _isPayConfirming, isSuccess: isPaySuccess } = useWaitForTransactionReceipt({ hash: payHash });
 
   const pendingPayRef = useRef<{ vault: string; merchant: string; amountWei: bigint } | null>(null);
+  const pendingPayAfterSwitchRef = useRef<{ vault: string; merchant: string; amountWei: bigint } | null>(null);
   const acceptPaymentSentRef = useRef(false);
   const walletMenuRef = useRef<HTMLDivElement>(null);
 
@@ -128,6 +129,32 @@ export default function PayPage() {
     );
   };
 
+  const runApproveAndPay = (vaultAddr: string, merchantAddr: string, amountWei: bigint) => {
+    const c = getContracts(baseSepolia.id);
+    pendingPayRef.current = { vault: vaultAddr, merchant: merchantAddr, amountWei };
+    acceptPaymentSentRef.current = false;
+    try {
+      writeApprove(
+        {
+          address: c.usdcAddress as `0x${string}`,
+          abi: ERC20_ABI,
+          functionName: 'approve',
+          args: [vaultAddr as `0x${string}`, amountWei],
+          chainId: baseSepolia.id,
+        },
+        {
+          onError: (e) => {
+            toast.error(e.message ?? 'Approve failed');
+            pendingPayRef.current = null;
+          },
+        },
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Approve failed');
+      pendingPayRef.current = null;
+    }
+  };
+
   const handleConfirmPay = async () => {
     setConfirmOpen(false);
     if (paymentMethod !== 'wallet' || !amount || !vault.trim()) {
@@ -144,10 +171,6 @@ export default function PayPage() {
       toast.error('Connect your wallet to pay');
       return;
     }
-    if (!isCorrectChain) {
-      toast.error('Switch to Base Sepolia to pay');
-      return;
-    }
     if (!merchant.trim()) {
       toast.error('Merchant address required (scan QR or enter vault + merchant)');
       return;
@@ -156,42 +179,33 @@ export default function PayPage() {
       toast.error('Insufficient USDC balance');
       return;
     }
-    if (chain?.id !== targetChainId) {
+    // If on wrong network: switch first, then run approve+pay when chain updates.
+    const onCorrectChain = chain === undefined || Number(chain.id) === targetChainId;
+    if (!onCorrectChain) {
+      pendingPayAfterSwitchRef.current = { vault, merchant, amountWei };
       switchChain({ chainId: targetChainId });
-      toast.info('Please switch to Base Sepolia in your wallet and try again.');
+      toast.info('Approve the network switch in your wallet, then we’ll complete the payment.');
       return;
     }
-    // Always use Base Sepolia (84532) so deployed bundle never sends 8453.
-    const chainIdForTx = baseSepolia.id;
-    pendingPayRef.current = { vault, merchant, amountWei };
-    acceptPaymentSentRef.current = false;
-    try {
-      writeApprove(
-        {
-          address: contracts.usdcAddress as `0x${string}`,
-          abi: ERC20_ABI,
-          functionName: 'approve',
-          args: [vault as `0x${string}`, amountWei],
-          chainId: chainIdForTx,
-        },
-        {
-          onError: (e) => {
-            toast.error(e.message ?? 'Approve failed');
-            pendingPayRef.current = null;
-          },
-        },
-      );
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Approve failed');
-      pendingPayRef.current = null;
-    }
+    runApproveAndPay(vault, merchant, amountWei);
   };
+
+  // After user switches to Base Sepolia, run approve + pay (USDC) automatically.
+  useEffect(() => {
+    const pending = pendingPayAfterSwitchRef.current;
+    if (!pending || !walletAddress) return;
+    const onCorrectChain = chain === undefined || Number(chain?.id) === targetChainId;
+    if (!onCorrectChain) return;
+    pendingPayAfterSwitchRef.current = null;
+    runApproveAndPay(pending.vault, pending.merchant, pending.amountWei);
+  }, [chain?.id, targetChainId, walletAddress]);
 
   useEffect(() => {
     if (!approveHash || !isApproveSuccess || acceptPaymentSentRef.current) return;
     const pending = pendingPayRef.current;
     if (!pending) return;
-    if (!chain || chain.id !== targetChainId) return; // only send acceptPayment on correct chain
+    const onCorrectChain = chain === undefined || Number(chain?.id) === targetChainId;
+    if (!onCorrectChain) return; // only send acceptPayment when on Base Sepolia
     acceptPaymentSentRef.current = true;
     writeAcceptPayment(
       {
@@ -391,27 +405,11 @@ export default function PayPage() {
                     {isConnectPending ? 'Connecting…' : 'Connect wallet'}
                   </button>
                 </>
-              ) : needsSwitch ? (
-                <>
-                  <p className="text-xs text-secondary">
-                    {isSwitchPending ? 'Switching to Base Sepolia…' : 'Wrong network. We’re switching you to Base Sepolia.'}
-                  </p>
-                  {isSwitchPending ? (
-                    <p className="text-xs text-secondary/80">Approve in your wallet to continue.</p>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => switchChain({ chainId: targetChainId })}
-                      disabled={isSwitchPending}
-                      className="w-full rounded-lg bg-amber-500 px-4 py-3 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
-                    >
-                      Switch to Base Sepolia
-                    </button>
-                  )}
-                </>
               ) : (
                 <>
-                  <p className="text-xs text-secondary">Connected · Base Sepolia</p>
+                  <p className="text-xs text-secondary">
+                    {needsSwitch ? "We'll switch to Base Sepolia when you pay." : 'Connected · Base Sepolia'}
+                  </p>
                   {usdcBalance !== null && (
                     <p className="text-sm font-medium text-primary">
                       Balance: <span className="text-accent-green">{usdcBalance} USDC</span>
@@ -422,11 +420,11 @@ export default function PayPage() {
                   )}
                   <button
                     type="button"
-                    disabled={!amount || !vault.trim() || vault === ZERO_ADDRESS || !!hasInsufficientBalance}
+                    disabled={!amount || !vault.trim() || vault === ZERO_ADDRESS || !!hasInsufficientBalance || isSwitchPending}
                     onClick={handleRequestPay}
                     className="w-full rounded-lg bg-accent-green px-4 py-3 text-sm font-semibold text-white hover:bg-accent-green-hover disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Pay {amount || '0'} USDC
+                    {isSwitchPending ? 'Switching…' : `Pay ${amount || '0'} USDC`}
                   </button>
                 </>
               )}
