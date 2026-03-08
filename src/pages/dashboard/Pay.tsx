@@ -31,15 +31,6 @@ const ERC20_ABI = [
 const ZERO_REF: `0x${string}` = '0x0000000000000000000000000000000000000000000000000000000000000000';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-function connectorLabel(connector: { id?: string; name?: string }): string {
-  const id = (connector.id ?? '').toLowerCase();
-  const name = connector.name ?? '';
-  if (id.includes('injected') || id.includes('metamask')) return 'Browser wallet (MetaMask, Brave…)';
-  if (id.includes('coinbase')) return 'Coinbase Wallet';
-  if (id.includes('walletconnect') || id.includes('wallet_connect')) return 'WalletConnect (MetaMask app, mobile)';
-  return name || 'Wallet';
-}
-
 /**
  * Customer payment screen. Scan QR → /pay?payload=... or /pay?vault=&merchant=&amount=
  * BankVault: vault = pool address, merchant = wallet to credit. Customer approves USDC then BankVault.acceptPayment(merchant, amount, ref).
@@ -52,7 +43,6 @@ export default function PayPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
   const [walletMenuOpen, setWalletMenuOpen] = useState(false);
-  const [connectPickerOpen, setConnectPickerOpen] = useState(false);
 
   const { address: walletAddress, chain } = useAccount();
   const { connect, connectors, isPending: isConnectPending } = useConnect();
@@ -61,11 +51,12 @@ export default function PayPage() {
   // Same as desktop: connect to installed wallet so user can sign transactions (approve + acceptPayment).
   const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod|webOS|Mobi|BlackBerry|IEMobile/i.test(navigator.userAgent);
   const connectConnector = useMemo(() => {
+    const wc = connectors.find((c) => c.id?.toLowerCase().includes('walletconnect') || c.id?.toLowerCase().includes('wallet_connect'));
     const injected = connectors.find((c) => c.id === 'injected');
     const coinbase = connectors.find((c) => c.id?.toLowerCase().includes('coinbase'));
-    const wc = connectors.find((c) => c.id?.toLowerCase().includes('walletconnect') || c.id?.toLowerCase().includes('wallet_connect'));
+    if (isMobile && wc) return wc;
     return injected ?? coinbase ?? wc ?? connectors[0];
-  }, [connectors]);
+  }, [connectors, isMobile]);
   const { switchChain, isPending: isSwitchPending } = useSwitchChain();
   const contracts = getContracts(chain?.id ?? baseSepolia.id);
   const targetChainId = baseSepolia.id; // MVP: Base Sepolia
@@ -126,12 +117,10 @@ export default function PayPage() {
     setConfirmOpen(true);
   };
 
-  const handleConnectWallet = (connector?: typeof connectors[number]) => {
-    const c = connector ?? connectConnector;
+  const handleConnectWallet = () => {
     connect(
-      { connector: c },
+      { connector: connectConnector },
       {
-        onSuccess: () => setConnectPickerOpen(false),
         onError: (err) => {
           toast.error(err?.message ?? 'Connection failed');
         },
@@ -268,6 +257,12 @@ export default function PayPage() {
     return () => document.removeEventListener('mousedown', onOutside);
   }, [walletMenuOpen]);
 
+  // Auto-switch to Base Sepolia when user is connected on wrong network so they can transact.
+  useEffect(() => {
+    if (!walletAddress || !chain || chain.id === targetChainId || isSwitchPending) return;
+    switchChain({ chainId: targetChainId });
+  }, [walletAddress, chain, targetChainId, isSwitchPending, switchChain]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -312,7 +307,7 @@ export default function PayPage() {
                       type="button"
                       onClick={() => {
                         setWalletMenuOpen(false);
-                        setConnectPickerOpen(true);
+                        handleConnectWallet();
                       }}
                       disabled={isConnectPending}
                       className="w-full px-3 py-2 text-left text-sm text-primary hover:bg-white/10 disabled:opacity-50"
@@ -379,47 +374,30 @@ export default function PayPage() {
                   <p className="text-xs text-secondary">Connect your wallet to pay with USDC.</p>
                   <button
                     type="button"
-                    onClick={() => setConnectPickerOpen(true)}
+                    onClick={handleConnectWallet}
                     disabled={isConnectPending}
                     className="w-full rounded-lg bg-accent-green px-4 py-3 text-sm font-semibold text-white hover:bg-accent-green-hover disabled:opacity-50 active:scale-[0.98] touch-manipulation"
                   >
                     {isConnectPending ? 'Connecting…' : 'Connect wallet'}
                   </button>
-                  {connectPickerOpen && (
-                    <div className="rounded-xl border border-white/10 bg-tertiary/50 p-3 space-y-2">
-                      <p className="text-xs font-medium text-secondary">Choose wallet</p>
-                      {connectors.map((c) => (
-                        <button
-                          key={c.uid}
-                          type="button"
-                          onClick={() => handleConnectWallet(c)}
-                          disabled={isConnectPending}
-                          className="w-full rounded-lg border border-white/10 bg-secondary px-4 py-3 text-sm font-medium text-primary hover:bg-white/10 disabled:opacity-50 text-left"
-                        >
-                          {connectorLabel(c)}
-                        </button>
-                      ))}
-                      <button
-                        type="button"
-                        onClick={() => setConnectPickerOpen(false)}
-                        className="w-full rounded-lg text-xs text-secondary hover:text-primary"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
                 </>
               ) : needsSwitch ? (
                 <>
-                  <p className="text-xs text-secondary">Wrong network. Switch to Base Sepolia to pay with USDC.</p>
-                  <button
-                    type="button"
-                    onClick={() => switchChain({ chainId: targetChainId })}
-                    disabled={isSwitchPending}
-                    className="w-full rounded-lg bg-amber-500 px-4 py-3 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
-                  >
-                    {isSwitchPending ? 'Switching…' : 'Switch to Base Sepolia'}
-                  </button>
+                  <p className="text-xs text-secondary">
+                    {isSwitchPending ? 'Switching to Base Sepolia…' : 'Wrong network. We’re switching you to Base Sepolia.'}
+                  </p>
+                  {isSwitchPending ? (
+                    <p className="text-xs text-secondary/80">Approve in your wallet to continue.</p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => switchChain({ chainId: targetChainId })}
+                      disabled={isSwitchPending}
+                      className="w-full rounded-lg bg-amber-500 px-4 py-3 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
+                    >
+                      Switch to Base Sepolia
+                    </button>
+                  )}
                 </>
               ) : (
                 <>
