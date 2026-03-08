@@ -1,5 +1,5 @@
 import { http, fallback, createConfig } from 'wagmi';
-import { base, baseSepolia } from 'wagmi/chains';
+import { baseSepolia } from 'wagmi/chains';
 import { coinbaseWallet, injected, walletConnect } from 'wagmi/connectors';
 import { BASE_SEPOLIA_RPC } from './lib/base-rpc';
 
@@ -13,11 +13,12 @@ const baseSepoliaTransport = fallback([
   http('https://base-sepolia.drpc.org', { batch: false, retryCount: 2 }),
 ]);
 
+/** Testnet only: single chain so the app can never send txs for Base mainnet (8453). */
 export function getConfig() {
   const connectors = [
     injected(),
     coinbaseWallet({
-      appName: 'PayEcho',
+      appName: 'payecho',
       preference: 'smartWalletOnly',
       version: '4',
     }),
@@ -26,8 +27,8 @@ export function getConfig() {
           walletConnect({
             projectId: walletConnectProjectId,
             metadata: {
-              name: 'PayEcho',
-              description: 'Pay with USDC on Base',
+              name: 'payecho',
+              description: 'Pay with USDC on Base Sepolia',
               url: typeof window !== 'undefined' ? window.location.origin : '',
               icons: [],
             },
@@ -38,10 +39,9 @@ export function getConfig() {
   ];
 
   return createConfig({
-    chains: [baseSepolia, base],
+    chains: [baseSepolia],
     connectors,
     transports: {
-      [base.id]: http(),
       [baseSepolia.id]: baseSepoliaTransport,
     },
   });

@@ -161,7 +161,8 @@ export default function PayPage() {
       toast.info('Please switch to Base Sepolia in your wallet and try again.');
       return;
     }
-    // Do not pass chainId: let wagmi use the connected wallet's chain so we never get "invalid chain id for signer".
+    // Always use Base Sepolia (84532) so deployed bundle never sends 8453.
+    const chainIdForTx = baseSepolia.id;
     pendingPayRef.current = { vault, merchant, amountWei };
     acceptPaymentSentRef.current = false;
     try {
@@ -171,6 +172,7 @@ export default function PayPage() {
           abi: ERC20_ABI,
           functionName: 'approve',
           args: [vault as `0x${string}`, amountWei],
+          chainId: chainIdForTx,
         },
         {
           onError: (e) => {
@@ -197,6 +199,7 @@ export default function PayPage() {
         abi: BANK_VAULT_ABI,
         functionName: 'acceptPayment',
         args: [pending.merchant as `0x${string}`, pending.amountWei, ZERO_REF],
+        chainId: baseSepolia.id,
       },
       {
         onError: (e) => {
