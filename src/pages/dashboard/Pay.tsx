@@ -156,6 +156,11 @@ export default function PayPage() {
       toast.error('Insufficient USDC balance');
       return;
     }
+    if (chain?.id !== targetChainId) {
+      switchChain({ chainId: targetChainId });
+      toast.info('Please switch to Base Sepolia in your wallet and try again.');
+      return;
+    }
     pendingPayRef.current = { vault, merchant, amountWei };
     acceptPaymentSentRef.current = false;
     try {
@@ -165,6 +170,7 @@ export default function PayPage() {
           abi: ERC20_ABI,
           functionName: 'approve',
           args: [vault as `0x${string}`, amountWei],
+          chainId: targetChainId,
         },
         {
           onError: (e) => {
@@ -190,6 +196,7 @@ export default function PayPage() {
         abi: BANK_VAULT_ABI,
         functionName: 'acceptPayment',
         args: [pending.merchant as `0x${string}`, pending.amountWei, ZERO_REF],
+        chainId: targetChainId,
       },
       {
         onError: (e) => {
@@ -198,7 +205,7 @@ export default function PayPage() {
         },
       },
     );
-  }, [approveHash, isApproveSuccess, writeAcceptPayment]);
+  }, [approveHash, isApproveSuccess, writeAcceptPayment, targetChainId]);
 
   useEffect(() => {
     if (!payHash || !isPaySuccess) return;
