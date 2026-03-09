@@ -51,8 +51,11 @@ export function getConfig() {
   });
 }
 
+/** Single shared config so WalletConnect Core is only initialized once (avoids "already initialized" and listener leaks). */
+export const wagmiConfig = getConfig();
+
 declare module 'wagmi' {
   interface Register {
-    config: ReturnType<typeof getConfig>;
+    config: typeof wagmiConfig;
   }
 }

@@ -55,4 +55,17 @@ export const MERCHANT_STAKING_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    inputs: [
+      { internalType: 'address', name: 'staker', type: 'address' },
+      { internalType: 'address', name: 'merchant', type: 'address' },
+    ],
+    name: 'stakeMeta',
+    outputs: [
+      { internalType: 'uint256', name: 'unlockAt', type: 'uint256' },
+      { internalType: 'uint8', name: 'lockId', type: 'uint8' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
 ] as const;

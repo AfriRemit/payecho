@@ -1,12 +1,10 @@
-'use client';
-
 import type { ReactNode } from 'react';
 import { useState, useMemo } from 'react';
 import { WagmiProvider } from 'wagmi';
 import { PrivyProvider } from '@privy-io/react-auth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { baseSepolia } from 'viem/chains';
-import { getConfig } from './wagmi';
+import { wagmiConfig } from './wagmi';
 import { AuthProvider } from './contexts/AuthContext';
 import { EnsureWallet } from './components/web3/EnsureWallet';
 
@@ -31,7 +29,6 @@ function PrivySetupRequired() {
 
 export function AppProviders(props: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
-  const wagmiConfig = useMemo(() => getConfig(), []);
   // On mobile, avoid auto-reconnect so we don't trigger "Provider not found" when stored connector was injected (no provider in mobile browser).
   const reconnectOnMount = useMemo(() => {
     if (typeof navigator === 'undefined') return true;

@@ -115,6 +115,9 @@ export default function Staking() {
   const [selectedMerchant, setSelectedMerchant] = useState<MerchantForStaking | null>(null);
   const [stakeAmount, setStakeAmount] = useState('');
   const [stakeSubmitting, setStakeSubmitting] = useState(false);
+  const [withdrawMerchant, setWithdrawMerchant] = useState<MerchantForStaking | null>(null);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
 
   const { data: totalStakedWei } = useReadContract({
     address: (stakingAddress as `0x${string}`) ?? undefined,
@@ -210,6 +213,42 @@ export default function Staking() {
   const getMerchantTotalStaked = (m: MerchantForStaking) => merchantStakedFromChain[m.address] ?? m.totalStaked ?? 0;
   const getYourStake = (m: MerchantForStaking) => yourStakeByMerchant[m.address] ?? 0;
 
+  const stakedMerchantList = useMemo(
+    () => merchants.filter((m) => (yourStakeByMerchant[m.address] ?? 0) > 0),
+    [merchants, yourStakeByMerchant],
+  );
+
+  const stakeMetaCalls = useMemo(
+    () =>
+      stakingAddress && userAddress && stakedMerchantList.length > 0
+        ? stakedMerchantList.map((m) => ({
+            address: stakingAddress as `0x${string}`,
+            abi: MERCHANT_STAKING_ABI,
+            functionName: 'stakeMeta' as const,
+            args: [userAddress as `0x${string}`, m.address as `0x${string}`] as const,
+          }))
+        : [],
+    [stakingAddress, userAddress, stakedMerchantList],
+  );
+
+  const { data: stakeMetaResults } = useReadContracts({
+    contracts: stakeMetaCalls,
+  });
+
+  const unlockByMerchant = useMemo(() => {
+    const map: Record<string, { unlockAt: number; lockId: number }> = {};
+    if (stakeMetaResults && stakedMerchantList.length === stakeMetaResults.length) {
+      stakeMetaResults.forEach((r, i) => {
+        const addr = stakedMerchantList[i]?.address;
+        if (addr && r?.status === 'success' && r.result != null) {
+          const [unlockAt, lockId] = r.result as [bigint, number];
+          map[addr] = { unlockAt: Number(unlockAt), lockId: Number(lockId) };
+        }
+      });
+    }
+    return map;
+  }, [stakedMerchantList, stakeMetaResults]);
+
   const sortedMerchants = useMemo(() => {
     let list = [...merchants];
     if (search.trim()) {
@@ -270,6 +309,7 @@ export default function Staking() {
         chain: baseSepolia,
         to: usdcAddr,
         data: approveData,
+        gas: 500000n,
       });
       const stakeData = encodeFunctionData({
         abi: MERCHANT_STAKING_ABI,
@@ -281,6 +321,7 @@ export default function Staking() {
         chain: baseSepolia,
         to: stakingAddr,
         data: stakeData,
+        gas: 750000n,
       });
       toast.success(`Staked ${amount} USDC on ${selectedMerchant.name}.`);
       setSelectedMerchant(null);
@@ -294,6 +335,66 @@ export default function Staking() {
       }
     } finally {
       setStakeSubmitting(false);
+    }
+  };
+
+  const handleWithdrawClick = (m: MerchantForStaking) => {
+    setWithdrawMerchant(m);
+    setWithdrawAmount(String(getYourStake(m)));
+  };
+
+  const handleWithdrawSubmit = async () => {
+    if (!withdrawMerchant) return;
+    const amount = withdrawAmount.trim();
+    const num = parseFloat(amount);
+    if (!amount || Number.isNaN(num) || num <= 0) {
+      toast.error('Enter a valid USDC amount to withdraw');
+      return;
+    }
+    const maxStake = getYourStake(withdrawMerchant);
+    if (num > maxStake) {
+      toast.error(`You can withdraw at most $${maxStake.toLocaleString('en-US', { maximumFractionDigits: 2 })}`);
+      return;
+    }
+    const meta = unlockByMerchant[withdrawMerchant.address];
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (meta && meta.unlockAt > 0 && nowSec < meta.unlockAt) {
+      toast.error('This stake is locked. Withdraw is available after the unlock date.');
+      return;
+    }
+    if (!stakingAddress || !walletClient?.account) {
+      toast.error('Connect your wallet to withdraw.');
+      return;
+    }
+    const amountWei = parseUnits(amount, USDC_DECIMALS);
+    const stakingAddr = stakingAddress as `0x${string}`;
+    const merchantAddr = withdrawMerchant.address as `0x${string}`;
+    setWithdrawSubmitting(true);
+    try {
+      const withdrawData = encodeFunctionData({
+        abi: MERCHANT_STAKING_ABI,
+        functionName: 'withdraw',
+        args: [merchantAddr, amountWei],
+      });
+      await walletClient.sendTransaction({
+        account: walletClient.account,
+        chain: baseSepolia,
+        to: stakingAddr,
+        data: withdrawData,
+        gas: 750000n,
+      });
+      toast.success(`Withdrew ${amount} USDC from ${withdrawMerchant.name || 'merchant'}.`);
+      setWithdrawMerchant(null);
+      setWithdrawAmount('');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/user rejected|rejected the request|denied/i.test(msg)) {
+        toast.info('You declined the transaction.');
+      } else {
+        toast.error(msg || 'Withdraw failed');
+      }
+    } finally {
+      setWithdrawSubmitting(false);
     }
   };
 
@@ -701,14 +802,125 @@ export default function Staking() {
             exit={{ opacity: 0, y: -4 }}
             className="rounded-xl border border-white/10 bg-secondary/50 overflow-hidden"
           >
-            <div className="p-4 border-b border-white/10">
-              <p className="text-sm text-secondary">Your active stakes will appear here.</p>
+            <div className="p-4 border-b border-white/10 flex items-center justify-between">
+              <p className="text-sm text-secondary">Your active stakes on merchants.</p>
+              <p className="text-xs text-secondary">
+                Total:&nbsp;
+                <span className="font-semibold text-primary">
+                  {stakingAddress && isConnected
+                    ? `$${yourStakesSum.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+                    : '—'}
+                </span>
+              </p>
             </div>
-            <div className="p-12 text-center">
-              <Wallet className="w-12 h-12 text-secondary/60 mx-auto mb-3" />
-              <p className="text-primary font-medium">No active stakes</p>
-              <p className="text-secondary text-sm mt-1">Stake on a merchant in the Merchants to stake tab to start earning yields.</p>
-            </div>
+            {!stakingAddress || !isConnected ? (
+              <div className="p-12 text-center">
+                <Wallet className="w-12 h-12 text-secondary/60 mx-auto mb-3" />
+                <p className="text-primary font-medium">Connect wallet to see your stakes</p>
+                <p className="text-secondary text-sm mt-1">
+                  Connect a wallet on Base Sepolia and stake on a merchant to see positions here.
+                </p>
+              </div>
+            ) : loading ? (
+              <div className="p-12 text-center">
+                <RefreshCw className="w-8 h-8 text-secondary mx-auto animate-spin mb-3" />
+                <p className="text-secondary text-sm">Loading your stakes…</p>
+              </div>
+            ) : (
+              (() => {
+                const stakedMerchants = sortedMerchants.filter((m) => getYourStake(m) > 0);
+                if (stakedMerchants.length === 0) {
+                  return (
+                    <div className="p-12 text-center">
+                      <Wallet className="w-12 h-12 text-secondary/60 mx-auto mb-3" />
+                      <p className="text-primary font-medium">No active stakes</p>
+                      <p className="text-secondary text-sm mt-1">
+                        Stake on a merchant in the Merchants to stake tab to start earning yields.
+                      </p>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="p-4 space-y-3">
+                    {stakedMerchants.map((m) => {
+                      const meta = unlockByMerchant[m.address];
+                      const unlockAt = meta?.unlockAt ?? 0;
+                      const nowSec = Math.floor(Date.now() / 1000);
+                      const isLocked = unlockAt > 0 && nowSec < unlockAt;
+                      const unlockDate = unlockAt > 0 ? new Date(unlockAt * 1000) : null;
+                      const canWithdraw = !isLocked;
+                      return (
+                        <div
+                          key={m.address}
+                          className="rounded-xl border border-white/10 bg-tertiary/30 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div
+                              className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-primary border border-white/10"
+                              style={{
+                                backgroundColor: `${TIER_COLORS[m.tier as CreditTier] ?? TIER_COLORS.Seed}20`,
+                              }}
+                            >
+                              {(m.name || 'M').charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-primary truncate">{m.name || 'Unnamed merchant'}</p>
+                              <p className="text-xs text-secondary font-mono">{shortenAddress(m.address, 6)}</p>
+                              <p className="text-xs text-secondary mt-0.5">
+                                Tier{' '}
+                                <span className="font-semibold text-primary">
+                                  {m.tier}
+                                </span>{' '}
+                                • Score {m.score}/1000
+                              </p>
+                              <p className="text-xs mt-1">
+                                {unlockAt === 0 ? (
+                                  <span className="text-accent-green">Withdraw anytime</span>
+                                ) : isLocked && unlockDate ? (
+                                  <span className="text-amber-500">
+                                    Unlocks {unlockDate.toLocaleDateString(undefined, { dateStyle: 'medium' })}
+                                  </span>
+                                ) : (
+                                  <span className="text-accent-green">Unlocked — withdraw available</span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex flex-col sm:items-end gap-2 text-sm">
+                            <p className="text-secondary">
+                              Total staked:{' '}
+                              <span className="font-semibold text-primary tabular-nums">
+                                ${getMerchantTotalStaked(m).toLocaleString('en-US', {
+                                  minimumFractionDigits: 0,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </span>
+                            </p>
+                            <p className="text-secondary">
+                              Your stake:{' '}
+                              <span className="font-semibold text-accent-green tabular-nums">
+                                ${getYourStake(m).toLocaleString('en-US', {
+                                  minimumFractionDigits: 0,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </span>
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => handleWithdrawClick(m)}
+                              disabled={!canWithdraw}
+                              className="rounded-lg bg-accent-green px-3 py-1.5 text-xs font-semibold text-white hover:bg-accent-green-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Withdraw
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()
+            )}
           </motion.section>
         )}
       </AnimatePresence>
@@ -826,6 +1038,95 @@ export default function Staking() {
                 <p className="text-[10px] text-secondary text-center">
                   {stakingAddress ? 'Two txs: approve USDC then stake. APY is tier-based until on-chain yield is live.' : 'Set VITE_MERCHANT_STAKING_ADDRESS after deploying the staking contract.'}
                 </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Withdraw modal */}
+      <AnimatePresence>
+        {withdrawMerchant && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setWithdrawMerchant(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="withdraw-modal-title"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              className="bg-secondary rounded-2xl border border-white/10 shadow-2xl w-full max-w-md overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-4 border-b border-white/10">
+                <h2 id="withdraw-modal-title" className="text-lg font-semibold text-primary">
+                  Withdraw from {withdrawMerchant.name || 'Unnamed'}
+                </h2>
+                <p className="text-sm text-secondary mt-1">
+                  Your stake: ${getYourStake(withdrawMerchant).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USDC
+                </p>
+                {(() => {
+                  const meta = unlockByMerchant[withdrawMerchant.address];
+                  const unlockAt = meta?.unlockAt ?? 0;
+                  const nowSec = Math.floor(Date.now() / 1000);
+                  const isLocked = unlockAt > 0 && nowSec < unlockAt;
+                  const unlockDate = unlockAt > 0 ? new Date(unlockAt * 1000) : null;
+                  return unlockAt > 0 ? (
+                    <p className="text-xs mt-2">
+                      {isLocked && unlockDate ? (
+                        <span className="text-amber-500">Unlocks {unlockDate.toLocaleDateString(undefined, { dateStyle: 'medium' })}</span>
+                      ) : (
+                        <span className="text-accent-green">Unlocked — you can withdraw.</span>
+                      )}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-accent-green mt-2">Flexible stake — withdraw anytime.</p>
+                  );
+                })()}
+              </div>
+              <div className="p-4 space-y-3">
+                <label className="block">
+                  <span className="text-xs font-medium text-primary">Amount to withdraw (USDC)</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="0.00"
+                    value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-white/10 bg-tertiary px-3 py-2 text-sm text-primary placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-accent-green/50"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setWithdrawAmount(String(getYourStake(withdrawMerchant)))}
+                  className="text-xs text-accent-green hover:underline"
+                >
+                  Max
+                </button>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setWithdrawMerchant(null)}
+                    className="flex-1 rounded-lg border border-white/10 py-2 text-sm font-medium text-primary hover:bg-white/5 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleWithdrawSubmit}
+                    disabled={withdrawSubmitting}
+                    className="flex-1 rounded-lg bg-accent-green py-2 text-sm font-semibold text-white hover:bg-accent-green-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {withdrawSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <>Withdraw</>}
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

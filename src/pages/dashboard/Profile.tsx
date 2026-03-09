@@ -178,34 +178,33 @@ export default function Profile() {
       <div>
         <h1 className="text-2xl md:text-3xl font-semibold text-primary">Profile</h1>
         <p className="text-secondary text-sm mt-1">
-          Your account details and PayEcho wallet address.
+          Your wallet address and account details.
         </p>
       </div>
 
-      {/* PayEcho wallet address — read-only, created on first login */}
+      {/* User wallet address — the only on-chain identity we show */}
       <div className="bg-secondary rounded-xl border border-white/10 p-6">
         <h2 className="text-sm font-semibold text-secondary uppercase tracking-wide mb-2">
-          PayEcho wallet address
+          Your wallet address
         </h2>
         <p className="text-primary font-mono text-sm break-all">
           {profile.walletAddress}
         </p>
         <p className="text-xs text-secondary mt-2">
-          This is your wallet address (created when you logged in). Use it to receive payments and link your merchant vault.
+          Use this address to receive USDC payments. Customers pay to this wallet via the shared payment pool.
         </p>
       </div>
 
       {/* Merchant details (from registration) */}
       {merchant ? (
         <div className="bg-secondary rounded-xl border border-white/10 p-6">
-          <h2 className="text-sm font-semibold text-secondary uppercase tracking-wide mb-3">
-            Merchant details
+          <h2 className="text-sm font-semibold text-secondary uppercase tracking-wide mb-1">
+            Business profile
           </h2>
+          <p className="text-lg font-semibold text-primary mb-3">
+            {merchant.name && merchant.name.trim() ? merchant.name : 'Unnamed business'}
+          </p>
           <dl className="grid gap-2 text-sm">
-            <div>
-              <dt className="text-secondary">Business name</dt>
-              <dd className="text-primary font-medium">{merchant.name}</dd>
-            </div>
             <div>
               <dt className="text-secondary">Category</dt>
               <dd className="text-primary">{merchant.category}</dd>
@@ -238,13 +237,9 @@ export default function Profile() {
                 <dd className="text-primary whitespace-pre-wrap text-sm">{merchant.description}</dd>
               </div>
             )}
-            <div>
-              <dt className="text-secondary">Payment pool (BankVault)</dt>
-              <dd className="text-primary font-mono text-xs break-all">{merchant.vaultAddress}</dd>
-            </div>
           </dl>
           <p className="text-xs text-secondary mt-3">
-            These were saved when you registered as a merchant. Payments to your QR go to the shared pool above.
+            These details were saved when you registered as a merchant.
           </p>
 
           {merchant.vaultAddress && (

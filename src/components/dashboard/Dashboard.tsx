@@ -9,6 +9,10 @@ import { DepositWithdrawPanel } from './DepositWithdrawPanel';
 import { useAuth } from '../../contexts/AuthContext';
 import { setPostLoginRedirect } from '../../lib/postLoginRedirect';
 import { apiGetJson, apiPostBlob } from '../../lib/api';
+import { useReadContract } from 'wagmi';
+import { baseSepolia } from 'wagmi/chains';
+import { MERCHANT_STAKING_ABI } from '../../lib/ABI/MerchantStaking_ABI';
+import { getMerchantStakingAddress } from '../../lib/contracts';
 
 interface DashboardData {
   balance: { liquidUsdc: string; savingsUsdc: string; lockedInLoanUsdc: string };
@@ -50,6 +54,7 @@ export default function Dashboard() {
   const announceQueueRef = useRef<Promise<void>>(Promise.resolve());
   const navigate = useNavigate();
   const { isAuthenticated, login, address, getToken } = useAuth();
+  const stakingAddress = getMerchantStakingAddress();
 
   const playSpeak = useCallback(async (text: string, token: string | null) => {
     if (!text.trim() || !token) return;
@@ -155,7 +160,16 @@ export default function Dashboard() {
 
   const liquidUsdc = dashboard?.balance?.liquidUsdc ?? '0.00';
   const savingsUsdc = dashboard?.balance?.savingsUsdc ?? '0.00';
-  const lockedUsdc = dashboard?.balance?.lockedInLoanUsdc ?? '0.00';
+  // Per-merchant staked USDC from the StakingPool (MerchantStaking) contract.
+  const { data: stakedOnMerchantWei } = useReadContract({
+    address: (stakingAddress as `0x${string}`) ?? undefined,
+    abi: MERCHANT_STAKING_ABI,
+    functionName: 'totalStakedOnMerchant',
+    args: address ? [address.toLowerCase() as `0x${string}`] : undefined,
+    chainId: baseSepolia.id,
+  });
+  const stakedUsdc =
+    stakedOnMerchantWei != null ? (Number(stakedOnMerchantWei) / 1e6).toFixed(2) : '0.00';
   const score = dashboard != null ? dashboard.score : null;
   const paymentItems = dashboard ? (dashboard.payments ?? []) : [];
   const revenueData =
@@ -222,8 +236,8 @@ export default function Dashboard() {
         </motion.div>
         <motion.div variants={item}>
           <BalanceCard
-            label="Locked in loan"
-            amount={lockedUsdc}
+            label="Staked USDC"
+            amount={stakedUsdc}
             onRefresh={handleRefresh}
             isLoading={refreshing}
           />

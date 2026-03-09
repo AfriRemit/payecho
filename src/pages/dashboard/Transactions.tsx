@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { useAuth } from '../../contexts/AuthContext';
 import { apiGetJson } from '../../lib/api';
 import { shortenAddress } from '../../lib/utils';
 
@@ -39,30 +38,27 @@ export default function Transactions() {
   const [payments, setPayments] = useState<PaymentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { address, getToken } = useAuth();
 
   const loadPayments = useCallback(async () => {
-    if (!address) {
-      setPayments([]);
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
-      const token = await getToken();
       const data = await apiGetJson<DashboardResponse>(
-        `/api/merchants/${address.toLowerCase()}/dashboard`,
-        { token },
+        `/api/transactions`,
       );
       setPayments(data.payments ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load transactions');
+      const msg = e instanceof Error ? e.message : 'Failed to load transactions';
+      setError(
+        msg.includes('404')
+          ? 'Transactions API not found. Ensure the backend is running (e.g. npm run start in payechoBackend).'
+          : msg,
+      );
       setPayments([]);
     } finally {
       setLoading(false);
     }
-  }, [address, getToken]);
+  }, []);
 
   useEffect(() => {
     loadPayments();
@@ -88,10 +84,22 @@ export default function Transactions() {
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold text-primary">Transactions</h1>
           <p className="text-secondary text-sm mt-1">
-            Full payment history. Filter by date or amount. Export CSV. Basescan link per tx.
+            All PayEcho payments. Public — no account needed. Filter by date or amount, export CSV, Basescan link per tx.
           </p>
         </div>
         <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => loadPayments()}
+            disabled={loading}
+            className="rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-primary hover:bg-white/5 transition-colors flex items-center gap-2 disabled:opacity-50"
+            title="Refresh"
+          >
+            <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refresh
+          </button>
           <button
             type="button"
             onClick={() => exportToCsv(sortedRows)}
@@ -146,7 +154,7 @@ export default function Transactions() {
               ) : sortedRows.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-4 py-8 text-center text-secondary">
-                    No transactions yet. Payments will appear here when customers pay you.
+                    No PayEcho payments yet. All QR payments will appear here.
                   </td>
                 </tr>
               ) : (
