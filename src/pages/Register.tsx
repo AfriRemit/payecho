@@ -33,6 +33,8 @@ const Register: React.FC = () => {
     phone: '',
     email: '',
     language: 'English',
+    website: '',
+    description: '',
   });
 
   useEffect(() => {
@@ -86,6 +88,8 @@ const Register: React.FC = () => {
           email: form.email,
           preferredLanguage: form.language,
           vaultAddress: result.vaultAddress,
+          website: form.website.trim() || undefined,
+          description: form.description.trim() || undefined,
         },
         { token },
       );
@@ -94,7 +98,24 @@ const Register: React.FC = () => {
       }
 
       completeOnboarding();
-      toast.success('Merchant registered onchain. Profile saved.');
+      const txHash = result.txHash && result.txHash !== '0x' ? result.txHash : null;
+      toast.success(
+        txHash
+          ? () => (
+              <span>
+                Merchant registered onchain. Profile saved.{' '}
+                <a
+                  href={`https://base-sepolia.blockscout.com/tx/${txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline font-medium"
+                >
+                  View transaction on Base Sepolia explorer
+                </a>
+              </span>
+            )
+          : 'Merchant registered onchain. Profile saved.',
+      );
       navigate('/register/success');
     } catch (err) {
       const raw = err instanceof Error ? err.message : 'Registration failed';
@@ -111,7 +132,7 @@ const Register: React.FC = () => {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
@@ -166,7 +187,7 @@ const Register: React.FC = () => {
             Create your merchant profile
           </h1>
           <p className="text-secondary text-sm mb-6">
-            Your wallet will be registered with the shared payment pool (BankVault) so you can receive USDC. All fields are required.
+            Your wallet will be registered with the shared payment pool (BankVault) so you can receive USDC. Required fields below. Website and description are optional and appear on the Staking page for stakers.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -285,6 +306,36 @@ const Register: React.FC = () => {
                   </option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label htmlFor="website" className="block text-sm font-medium text-primary mb-1.5">
+                Website <span className="text-secondary font-normal">(optional)</span>
+              </label>
+              <input
+                id="website"
+                name="website"
+                type="url"
+                value={form.website}
+                onChange={handleChange}
+                placeholder="https://example.com"
+                className="w-full rounded-lg bg-tertiary border border-white/10 px-4 py-2.5 text-primary placeholder:text-secondary text-sm focus:outline-none focus:ring-2 focus:ring-accent-green/50"
+              />
+              <p className="text-xs text-secondary mt-1">Shown on the Staking page so stakers can visit your site.</p>
+            </div>
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-primary mb-1.5">
+                Description <span className="text-secondary font-normal">(optional)</span>
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+                placeholder="A short description of your business for stakers..."
+                rows={4}
+                className="w-full rounded-lg bg-tertiary border border-white/10 px-4 py-2.5 text-primary placeholder:text-secondary text-sm focus:outline-none focus:ring-2 focus:ring-accent-green/50 resize-y"
+              />
+              <p className="text-xs text-secondary mt-1">Shown on the Staking page so stakers can read about your business.</p>
             </div>
             <p className="text-[11px] text-secondary/70">
               Your wallet will be registered with the shared payment pool so you can receive USDC.

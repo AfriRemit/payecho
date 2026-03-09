@@ -7,10 +7,14 @@ import { BASE_SEPOLIA_RPC } from './lib/base-rpc';
 const walletConnectProjectId = (import.meta.env.VITE_WALLETCONNECT_PROJECT_ID as string)?.trim() ?? '';
 
 // Multiple RPC endpoints: when one returns "too many errors" / rate limit, the next is tried.
+// MetaMask uses its own RPC for Base Sepolia; if you see "RPC endpoint returned too many errors",
+// set Base Sepolia RPC in MetaMask to https://sepolia.base.org
 const baseSepoliaTransport = fallback([
-  http(import.meta.env.VITE_BASE_SEPOLIA_RPC || BASE_SEPOLIA_RPC, { batch: false, retryCount: 3 }),
+  http(import.meta.env.VITE_BASE_SEPOLIA_RPC || BASE_SEPOLIA_RPC, { batch: false, retryCount: 2 }),
+  http('https://sepolia.base.org', { batch: false, retryCount: 2 }),
   http('https://base-sepolia-rpc.publicnode.com', { batch: false, retryCount: 2 }),
   http('https://base-sepolia.drpc.org', { batch: false, retryCount: 2 }),
+  http('https://1rpc.io/sepolia-base', { batch: false, retryCount: 1 }),
 ]);
 
 /** Testnet only: single chain so the app can never send txs for Base mainnet (8453). */

@@ -1,13 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BalanceCard } from '../merchant/BalanceCard';
 import { PaymentFeed } from '../merchant/PaymentFeed';
 import { CreditScoreCard } from '../merchant/CreditScoreCard';
 import { RevenueChart } from '../merchant/RevenueChart';
+import { DepositWithdrawPanel } from './DepositWithdrawPanel';
 import { useAuth } from '../../contexts/AuthContext';
 import { setPostLoginRedirect } from '../../lib/postLoginRedirect';
-import { apiGetJson } from '../../lib/api';
+import { apiGetJson, apiPostBlob } from '../../lib/api';
 
 interface DashboardData {
   balance: { liquidUsdc: string; savingsUsdc: string; lockedInLoanUsdc: string };
@@ -35,13 +36,52 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } },
 };
 
+const POLL_INTERVAL_MS = 12_000; // poll for new payments every 12s
+
 export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [revenueRange] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const knownPaymentIdsRef = useRef<Set<string>>(new Set());
+  const isFirstLoadRef = useRef(true);
+  const hasAnnouncedBalanceRef = useRef(false);
+  const announceQueueRef = useRef<Promise<void>>(Promise.resolve());
   const navigate = useNavigate();
   const { isAuthenticated, login, address, getToken } = useAuth();
+
+  const playSpeak = useCallback(async (text: string, token: string | null) => {
+    if (!text.trim() || !token) return;
+    try {
+      const blob = await apiPostBlob('/api/voice/speak', { text }, { token });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.volume = 1;
+      await audio.play().catch(() => {});
+      audio.onended = () => URL.revokeObjectURL(url);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const playBalanceAnnouncement = useCallback((balanceStr: string, token: string | null) => {
+    const prev = announceQueueRef.current;
+    announceQueueRef.current = prev.then(() =>
+      playSpeak(`Your balance is ${balanceStr || '0'} USDC.`, token),
+    );
+  }, [playSpeak]);
+
+  const playPaymentReceivedAnnouncement = useCallback((amount: string, newBalanceStr: string, token: string | null) => {
+    if (!token) return;
+    const prev = announceQueueRef.current;
+    announceQueueRef.current = prev.then(() =>
+      playSpeak(
+        `Payment received. ${amount || '0'} USDC. Your new balance is ${newBalanceStr || '0'} USDC.`,
+        token,
+      ),
+    );
+  }, [playSpeak]);
 
   const loadDashboard = useCallback(async () => {
     if (!address) return;
@@ -52,17 +92,51 @@ export default function Dashboard() {
         `/api/merchants/${address.toLowerCase()}/dashboard`,
         { token },
       );
-      setDashboard(data);
+      const payments = data?.payments ?? [];
+      const currentIds = new Set(payments.map((p) => p.id));
+
+      if (isFirstLoadRef.current) {
+        isFirstLoadRef.current = false;
+        knownPaymentIdsRef.current = new Set(currentIds);
+        setDashboard(data);
+        if (soundEnabled && !hasAnnouncedBalanceRef.current && data?.balance?.liquidUsdc != null) {
+          hasAnnouncedBalanceRef.current = true;
+          playBalanceAnnouncement(data.balance.liquidUsdc, token);
+        }
+      } else {
+        const known = knownPaymentIdsRef.current;
+        const newPayments = payments.filter((p) => !known.has(p.id));
+        if (newPayments.length > 0 && soundEnabled && token) {
+          const newBalanceStr = data?.balance?.liquidUsdc ?? '0';
+          for (const p of newPayments) {
+            playPaymentReceivedAnnouncement(p.amount, newBalanceStr, token);
+          }
+        }
+        newPayments.forEach((p) => known.add(p.id));
+        setDashboard(data);
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Failed to load dashboard';
       setDashboardError(msg);
       setDashboard(null);
     }
-  }, [address, getToken]);
+  }, [address, getToken, soundEnabled, playBalanceAnnouncement, playPaymentReceivedAnnouncement]);
 
   useEffect(() => {
-    if (isAuthenticated && address) loadDashboard();
-    else setDashboard(null);
+    if (isAuthenticated && address) {
+      loadDashboard();
+    } else {
+      setDashboard(null);
+      isFirstLoadRef.current = true;
+      hasAnnouncedBalanceRef.current = false;
+      knownPaymentIdsRef.current = new Set();
+    }
+  }, [isAuthenticated, address, loadDashboard]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !address) return;
+    const interval = setInterval(loadDashboard, POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
   }, [isAuthenticated, address, loadDashboard]);
 
   const handleRefresh = () => {
@@ -159,6 +233,10 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
+      <motion.div variants={item}>
+        <DepositWithdrawPanel liquidUsdc={liquidUsdc} onWithdrawSuccess={handleRefresh} />
+      </motion.div>
+
       {dashboardError && (
         <motion.p variants={item} className="text-sm text-amber-500/90">
           {dashboardError}
@@ -167,13 +245,19 @@ export default function Dashboard() {
 
       {/* Main content grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <motion.div variants={item}>
-          <PaymentFeed items={paymentItems} onSoundToggle={() => {}} />
+        <motion.div variants={item} className="h-full min-h-[320px]">
+          <PaymentFeed
+            items={paymentItems}
+            soundEnabled={soundEnabled}
+            onSoundToggle={setSoundEnabled}
+          />
         </motion.div>
-        <motion.div variants={item}>
-          <div className="bg-secondary rounded-xl border border-white/10 p-5 h-full">
+        <motion.div variants={item} className="h-full min-h-[320px]">
+          <div className="bg-secondary rounded-xl border border-white/10 p-5 h-full flex flex-col min-h-[320px]">
             <h2 className="text-lg font-semibold text-primary mb-4">Revenue</h2>
-            <RevenueChart data={revenueData} range={revenueRange} />
+            <div className="flex-1 min-h-0 flex flex-col">
+              <RevenueChart data={revenueData} range={revenueRange} />
+            </div>
           </div>
         </motion.div>
       </div>

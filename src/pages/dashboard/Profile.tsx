@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
-import { apiGetJson, apiPatchJson } from '../../lib/api';
+import { apiGetJson, apiPatchJson, apiPostJson } from '../../lib/api';
 
 export interface UserProfileResponse {
   walletAddress: string;
@@ -22,6 +22,8 @@ export interface MerchantProfileResponse {
   email?: string;
   preferredLanguage?: string;
   vaultAddress: string;
+  website?: string;
+  description?: string;
   registeredAt: string;
 }
 
@@ -37,6 +39,7 @@ export default function Profile() {
     email: '',
     phone: '',
   });
+  const [merchantEdit, setMerchantEdit] = useState({ website: '', description: '' });
 
   useEffect(() => {
     let cancelled = false;
@@ -66,6 +69,10 @@ export default function Profile() {
             email: userData.email ?? m?.email ?? '',
             phone: userData.phone ?? m?.phone ?? '',
           });
+          setMerchantEdit({
+            website: m?.website ?? '',
+            description: m?.description ?? '',
+          });
         } else if (!cancelled) {
           setProfile(null);
           setError('Profile response missing wallet address');
@@ -82,6 +89,32 @@ export default function Profile() {
     })();
     return () => { cancelled = true; };
   }, [getToken, address]);
+
+  const handleSaveMerchant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!merchant) return;
+    const token = await getToken();
+    if (!token) {
+      toast.error('Please log in again.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await apiPostJson(`/api/merchants/register`, {
+        name: merchant.name,
+        category: merchant.category,
+        vaultAddress: merchant.vaultAddress,
+        website: merchantEdit.website.trim() || undefined,
+        description: merchantEdit.description.trim() || undefined,
+      }, { token });
+      setMerchant((m) => m ? { ...m, website: merchantEdit.website.trim() || undefined, description: merchantEdit.description.trim() || undefined } : null);
+      toast.success('Website and description updated. They will appear on Staking.');
+    } catch {
+      toast.error('Failed to update merchant info.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -189,6 +222,22 @@ export default function Profile() {
                 <dd className="text-primary">{merchant.preferredLanguage}</dd>
               </div>
             )}
+            {merchant.website && (
+              <div>
+                <dt className="text-secondary">Website</dt>
+                <dd className="text-primary">
+                  <a href={merchant.website.startsWith('http') ? merchant.website : `https://${merchant.website}`} target="_blank" rel="noopener noreferrer" className="text-accent-green hover:underline break-all">
+                    {merchant.website}
+                  </a>
+                </dd>
+              </div>
+            )}
+            {merchant.description && (
+              <div>
+                <dt className="text-secondary">Description</dt>
+                <dd className="text-primary whitespace-pre-wrap text-sm">{merchant.description}</dd>
+              </div>
+            )}
             <div>
               <dt className="text-secondary">Payment pool (BankVault)</dt>
               <dd className="text-primary font-mono text-xs break-all">{merchant.vaultAddress}</dd>
@@ -197,6 +246,48 @@ export default function Profile() {
           <p className="text-xs text-secondary mt-3">
             These were saved when you registered as a merchant. Payments to your QR go to the shared pool above.
           </p>
+
+          {merchant.vaultAddress && (
+            <form onSubmit={handleSaveMerchant} className="mt-6 pt-6 border-t border-white/10 space-y-4">
+              <h3 className="text-sm font-semibold text-primary">Public info (for Staking)</h3>
+              <p className="text-xs text-secondary">
+                Website and description appear on the Staking page so stakers can read about your business.
+              </p>
+              <div>
+                <label htmlFor="profile-website" className="block text-sm font-medium text-primary mb-1">
+                  Website
+                </label>
+                <input
+                  id="profile-website"
+                  type="url"
+                  value={merchantEdit.website}
+                  onChange={(e) => setMerchantEdit((p) => ({ ...p, website: e.target.value }))}
+                  placeholder="https://example.com"
+                  className="w-full rounded-lg bg-tertiary border border-white/10 px-4 py-2 text-primary placeholder:text-secondary text-sm focus:outline-none focus:ring-2 focus:ring-accent-green/50"
+                />
+              </div>
+              <div>
+                <label htmlFor="profile-description" className="block text-sm font-medium text-primary mb-1">
+                  Description
+                </label>
+                <textarea
+                  id="profile-description"
+                  value={merchantEdit.description}
+                  onChange={(e) => setMerchantEdit((p) => ({ ...p, description: e.target.value }))}
+                  placeholder="A short description of your business for stakers..."
+                  rows={4}
+                  className="w-full rounded-lg bg-tertiary border border-white/10 px-4 py-2 text-primary placeholder:text-secondary text-sm focus:outline-none focus:ring-2 focus:ring-accent-green/50 resize-y"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={saving}
+                className="rounded-lg bg-accent-green px-4 py-2 text-sm font-medium text-white hover:bg-accent-green-hover disabled:opacity-50"
+              >
+                {saving ? 'Saving…' : 'Save website & description'}
+              </button>
+            </form>
+          )}
         </div>
       ) : (
         <div className="bg-secondary/50 rounded-xl border border-white/10 p-6">

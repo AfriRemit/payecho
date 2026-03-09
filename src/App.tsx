@@ -30,6 +30,7 @@ import SavingsPage from './pages/dashboard/Savings';
 import LendingPage from './pages/dashboard/Lending';
 import IdentityPage from './pages/dashboard/Identity';
 import VoicePage from './pages/dashboard/Voice';
+import StakingPage from './pages/dashboard/Staking';
 import ProfilePage from './pages/dashboard/Profile';
 import Footer from './components/Footer';
 import { PostLoginRedirect } from './components/PostLoginRedirect';
@@ -86,6 +87,7 @@ function App() {
               <Route path="lending" element={<LendingPage />} />
               <Route path="identity" element={<IdentityPage />} />
               <Route path="voice" element={<VoicePage />} />
+              <Route path="staking" element={<StakingPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

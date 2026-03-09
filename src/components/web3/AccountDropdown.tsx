@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { ChevronDown, User, LogIn, LogOut } from 'lucide-react';
+import { ChevronDown, User, LogIn, LogOut, Mic, BadgeCheck, Menu } from 'lucide-react';
 
 export function AccountDropdown() {
   const { isAuthenticated, address, login, logout } = useAuth();
@@ -46,7 +46,8 @@ export function AccountDropdown() {
         <span className="font-mono text-secondary">
           {address ? `${address.slice(0, 6)}…${address.slice(-4)}` : 'Account'}
         </span>
-        <ChevronDown className={`w-4 h-4 text-secondary transition-transform ${open ? 'rotate-180' : ''}`} />
+        <Menu className="w-4 h-4 text-secondary shrink-0" aria-hidden />
+        <ChevronDown className={`w-4 h-4 text-secondary transition-transform shrink-0 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
@@ -62,6 +63,24 @@ export function AccountDropdown() {
           >
             <User className="w-4 h-4 text-secondary" />
             Profile
+          </Link>
+          <Link
+            to="/dashboard/voice"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-primary hover:bg-white/5 transition-colors"
+            role="menuitem"
+          >
+            <Mic className="w-4 h-4 text-secondary" />
+            Voice
+          </Link>
+          <Link
+            to="/dashboard/identity"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-primary hover:bg-white/5 transition-colors"
+            role="menuitem"
+          >
+            <BadgeCheck className="w-4 h-4 text-secondary" />
+            Identity
           </Link>
           <button
             type="button"

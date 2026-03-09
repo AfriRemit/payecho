@@ -1,24 +1,12 @@
 import { useState } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from './ui/ThemeToggle';
 import { AccountDropdown } from './web3/AccountDropdown';
-import { useDashboardSidebar } from '../contexts/DashboardSidebarContext';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const location = useLocation();
-  const dashboardSidebar = useDashboardSidebar();
-  const isDashboard = location.pathname.startsWith('/dashboard');
-
-  // On mobile dashboard: single menu icon opens sidebar (no dropdown with Pay)
-  const onMobileMenuClick = () => {
-    if (isDashboard && dashboardSidebar) {
-      dashboardSidebar.toggleSidebar();
-    } else {
-      setIsMenuOpen((v) => !v);
-    }
-  };
+  const onMobileMenuClick = () => setIsMenuOpen((v) => !v);
 
   return (
     <header
@@ -49,6 +37,22 @@ export default function Header() {
               >
                 Pay
               </NavLink>
+              <NavLink
+                to="/dashboard/transactions"
+                className={({ isActive }) =>
+                  `text-primary hover:text-accent-green transition-colors duration-200 ${isActive ? 'text-accent-green' : ''}`
+                }
+              >
+                Transactions
+              </NavLink>
+              <NavLink
+                to="/dashboard/staking"
+                className={({ isActive }) =>
+                  `text-primary hover:text-accent-green transition-colors duration-200 ${isActive ? 'text-accent-green' : ''}`
+                }
+              >
+                Staking
+              </NavLink>
             </nav>
           </div>
 
@@ -65,10 +69,10 @@ export default function Header() {
           <button
             onClick={onMobileMenuClick}
             className="md:hidden p-2 text-primary hover:text-accent-green transition-colors duration-200"
-            aria-label={isDashboard ? 'Open menu' : 'Open menu'}
+            aria-label="Open menu"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {!isDashboard && isMenuOpen ? (
+              {isMenuOpen ? (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               ) : (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -77,9 +81,9 @@ export default function Header() {
           </button>
         </div>
 
-        {/* Dropdown only when NOT on dashboard (no Pay in dashboard; sidebar handles nav) */}
+        {/* Mobile nav dropdown */}
         <AnimatePresence>
-          {!isDashboard && isMenuOpen && (
+          {isMenuOpen && (
             <motion.div
               className="absolute top-full left-0 right-0 mt-0 pt-4 pb-4 px-4 border-b border-l border-r rounded-b-xl bg-secondary shadow-xl md:hidden"
               style={{ borderColor: 'var(--bg-tertiary)' }}
@@ -107,6 +111,24 @@ export default function Header() {
                     }
                   >
                     Pay
+                  </NavLink>
+                  <NavLink
+                    to="/dashboard/transactions"
+                    onClick={() => setIsMenuOpen(false)}
+                    className={({ isActive }) =>
+                      `block text-left w-full text-primary hover:text-accent-green transition-colors duration-200 py-2 ${isActive ? 'text-accent-green' : ''}`
+                    }
+                  >
+                    Transactions
+                  </NavLink>
+                  <NavLink
+                    to="/dashboard/staking"
+                    onClick={() => setIsMenuOpen(false)}
+                    className={({ isActive }) =>
+                      `block text-left w-full text-primary hover:text-accent-green transition-colors duration-200 py-2 ${isActive ? 'text-accent-green' : ''}`
+                    }
+                  >
+                    Staking
                   </NavLink>
                 </nav>
                 <div

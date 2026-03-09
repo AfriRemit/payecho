@@ -46,7 +46,15 @@ export function getMerchantVaultAddress(_chainId?: number): string {
   return getBankVaultAddress();
 }
 
-/** Single BankVault (payment pool) address. From env; not hardcoded. Same for all merchants. */
+/** Base Sepolia BankVault (payment pool). Same for all merchants; env can override. */
+const BASE_SEPOLIA_BANK_VAULT = '0xA68e6db707e2a0D31Fee642Ec23530996767A235';
+
+/** Single BankVault (payment pool) address. Env override; otherwise hardcoded Base Sepolia. Same for all merchants. */
 export function getBankVaultAddress(): string {
-  return import.meta.env.VITE_BANK_VAULT_ADDRESS || import.meta.env.VITE_MERCHANT_VAULT_ADDRESS || '0x0000000000000000000000000000000000000000';
+  return import.meta.env.VITE_BANK_VAULT_ADDRESS || import.meta.env.VITE_MERCHANT_VAULT_ADDRESS || BASE_SEPOLIA_BANK_VAULT;
+}
+
+/** MerchantStaking contract (per-merchant USDC staking). Set VITE_MERCHANT_STAKING_ADDRESS after deploying. */
+export function getMerchantStakingAddress(): string | null {
+  return import.meta.env.VITE_MERCHANT_STAKING_ADDRESS || null;
 }

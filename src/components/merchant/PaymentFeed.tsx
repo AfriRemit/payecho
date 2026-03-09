@@ -34,7 +34,7 @@ export function PaymentFeed({
   };
 
   return (
-    <div className="bg-secondary rounded-xl border border-white/10 p-5">
+    <div className="bg-secondary rounded-xl border border-white/10 p-5 h-full flex flex-col min-h-[320px]">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-accent-green animate-pulse" />
@@ -68,8 +68,8 @@ export function PaymentFeed({
           </button>
         )}
       </div>
-      <div className="rounded-lg bg-tertiary/50 border border-white/5 overflow-hidden">
-        <div className="max-h-48 overflow-y-auto">
+      <div className="rounded-lg bg-tertiary/50 border border-white/5 overflow-hidden flex-1 min-h-0 flex flex-col">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           {items.length === 0 ? (
             <div className="px-4 py-8 text-center text-secondary text-sm">
               No payments yet. Payments will appear here when customers pay you via your QR or pay link.
@@ -116,7 +116,7 @@ export function PaymentFeed({
           )}
         </div>
       </div>
-      <p className="text-xs text-secondary mt-2">
+      <p className="text-xs text-secondary mt-2 shrink-0">
         Updates in real time when payments land on Base.
       </p>
     </div>
