@@ -10,7 +10,7 @@ export function WalletButton() {
         onClick={login}
         className="rounded-full bg-accent-green px-6 py-2 font-medium text-white hover:bg-accent-green-hover transition-colors"
       >
-        Log in
+        Log in / Sign up
       </button>
     );
   }

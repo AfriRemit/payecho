@@ -28,7 +28,7 @@ export function AccountDropdown() {
           className="flex items-center gap-2 rounded-full bg-accent-green px-4 py-2 font-medium text-white hover:bg-accent-green-hover transition-colors"
         >
           <LogIn className="w-4 h-4" />
-          Log in
+          Log in / Sign up
         </button>
       </div>
     );
