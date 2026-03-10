@@ -1,4 +1,4 @@
-const PRODUCTION_API_URL = 'https://payechobackend.onrender.com';
+const PRODUCTION_API_URL = 'https://pay-yyj0.onrender.com';
 
 export function getApiBaseUrl(): string {
   const envUrl = import.meta.env.VITE_API_URL as string | undefined;
