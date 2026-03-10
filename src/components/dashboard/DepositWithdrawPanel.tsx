@@ -10,6 +10,7 @@ import { BANK_VAULT_ABI } from '../../lib/ABI/BankVault_ABI';
 
 const USDC_DECIMALS = 6;
 const GAS_WITHDRAW = 100_000n;
+const GAS_REGISTER = 120_000n;
 
 function parseUsdcToWei(amountStr: string): bigint | null {
   const num = parseFloat(amountStr);
@@ -51,6 +52,29 @@ export function DepositWithdrawPanel({ liquidUsdc, onWithdrawSuccess }: DepositW
     const vaultAddress = getBankVaultAddress() as `0x${string}`;
     setWithdrawing(true);
     try {
+      if (publicClient && walletAddress) {
+        const isMerchant = await publicClient.readContract({
+          address: vaultAddress,
+          abi: BANK_VAULT_ABI,
+          functionName: 'isMerchant',
+          args: [walletAddress as `0x${string}`],
+        });
+        if (!isMerchant) {
+          toast.info('Registering your wallet as a merchant (one-time)…');
+          await walletClient.sendTransaction({
+            account: walletClient.account,
+            chain: baseSepolia,
+            to: vaultAddress,
+            data: encodeFunctionData({
+              abi: BANK_VAULT_ABI,
+              functionName: 'registerMerchant',
+              args: [walletAddress as `0x${string}`],
+            }),
+            gas: GAS_REGISTER,
+          });
+          toast.success('Merchant registration submitted. Now submitting withdraw…');
+        }
+      }
       if (publicClient) {
         await publicClient.simulateContract({
           account: walletClient.account,
@@ -78,6 +102,8 @@ export function DepositWithdrawPanel({ liquidUsdc, onWithdrawSuccess }: DepositW
       const msg = e instanceof Error ? e.message : String(e);
       if (/user rejected|rejected the request|denied/i.test(msg)) {
         toast.info('You declined the transaction.');
+      } else if (/NotMerchant/i.test(msg)) {
+        toast.error('This wallet is not registered as a merchant on-chain. Try again and approve the one-time registration.');
       } else if (/InsufficientLiquidBalance|insufficient/i.test(msg)) {
         toast.error('Insufficient liquid balance.');
       } else {
