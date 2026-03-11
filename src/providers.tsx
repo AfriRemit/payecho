@@ -42,23 +42,23 @@ export function AppProviders(props: { children: ReactNode }) {
   return (
     <WagmiProvider config={wagmiConfig} reconnectOnMount={reconnectOnMount}>
       <PrivyProvider
-      appId={privyAppId}
-      config={{
-        // Enable Google & X in Privy Dashboard → Login methods, or they won't appear
-        loginMethods: ['email', 'wallet', 'google', 'twitter', 'apple'],
-        appearance: {
-          theme: 'dark',
-          accentColor: '#22c55e', // accent-green
-        },
-        embeddedWallets: {
-          ethereum: {
-            createOnLogin: 'all-users',
+        appId={privyAppId}
+        config={{
+          // Only allow email (OTP), Google, and web3 wallet logins
+          loginMethods: ['email', 'wallet', 'google'],
+          appearance: {
+            theme: 'dark',
+            accentColor: '#22c55e', // accent-green
           },
-        },
-        defaultChain: baseSepolia,
-        supportedChains: [baseSepolia],
-      }}
-    >
+          embeddedWallets: {
+            ethereum: {
+              createOnLogin: 'all-users',
+            },
+          },
+          defaultChain: baseSepolia,
+          supportedChains: [baseSepolia],
+        }}
+      >
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <EnsureWallet>
