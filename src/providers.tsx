@@ -44,8 +44,8 @@ export function AppProviders(props: { children: ReactNode }) {
       <PrivyProvider
         appId={privyAppId}
         config={{
-          // Only allow email (OTP), Google, and web3 wallet logins
-          loginMethods: ['email', 'wallet', 'google'],
+          // Only allow email (OTP) and web3 wallet logins
+          loginMethods: ['email', 'wallet'],
           appearance: {
             theme: 'dark',
             accentColor: '#22c55e', // accent-green

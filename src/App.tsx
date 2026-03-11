@@ -86,6 +86,19 @@ function App() {
                 </main>
               </div>
             } />
+            {/* Public community staking page: wallet connect only, no auth/onboarding required */}
+            <Route
+              path="/staking"
+              element={
+                <div className="min-h-screen bg-primary">
+                  <main className="flex-1 pt-14 min-h-screen">
+                    <div className="px-4 sm:px-6 pt-3 pb-6 md:pt-4 md:pb-8 max-w-6xl mx-auto">
+                      <StakingPage />
+                    </div>
+                  </main>
+                </div>
+              }
+            />
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<DashboardPage />} />
               <Route path="profile" element={<ProfilePage />} />

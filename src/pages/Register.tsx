@@ -174,14 +174,15 @@ const Register: React.FC = () => {
   }
 
   return (
-    <main className="min-h-[calc(100vh-5rem)] flex items-center justify-center px-4 py-12">
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="w-full max-w-lg"
-      >
-        <div className="bg-secondary rounded-xl border border-white/10 p-6 md:p-8">
+    <>
+      <main className="min-h-[calc(100vh-5rem)] flex items-center justify-center px-4 py-12">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="w-full max-w-lg"
+        >
+          <div className="bg-secondary rounded-xl border border-white/10 p-6 md:p-8">
           <p className="text-sm font-medium text-accent-green mb-2">Step 2 of 3</p>
           <h1 className="text-2xl md:text-3xl font-semibold text-primary mb-2">
             Create your merchant profile
@@ -357,8 +358,34 @@ const Register: React.FC = () => {
             </div>
           </form>
         </div>
-      </motion.div>
-    </main>
+        </motion.div>
+      </main>
+
+      {submitting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md px-6">
+            <div className="bg-secondary rounded-2xl border border-white/10 px-6 py-8 shadow-2xl text-center">
+              <div className="mb-6 flex items-center justify-center">
+                <div className="relative w-16 h-16">
+                  <div className="absolute inset-0 rounded-full border-2 border-accent-green/20" />
+                  <div className="absolute inset-1 rounded-full border-2 border-t-accent-green border-r-accent-green/40 border-b-transparent border-l-transparent animate-spin" />
+                  <div className="absolute inset-3 rounded-full bg-primary/90 flex items-center justify-center text-xs font-semibold text-accent-green">
+                    PayEcho
+                  </div>
+                </div>
+              </div>
+              <h2 className="text-lg font-semibold text-primary mb-2">Creating your merchant profile…</h2>
+              <p className="text-sm text-secondary mb-3">
+                We’re registering you on-chain and saving your profile. This can take up to ~30 seconds.
+              </p>
+              <p className="text-xs text-secondary/70">
+                Please keep this tab open. We’ll move you forward automatically once everything is confirmed.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

@@ -46,7 +46,7 @@ export default function Header() {
                 Transactions
               </NavLink>
               <NavLink
-                to="/dashboard/staking"
+                to="/staking"
                 className={({ isActive }) =>
                   `text-primary hover:text-accent-green transition-colors duration-200 ${isActive ? 'text-accent-green' : ''}`
                 }
@@ -122,7 +122,7 @@ export default function Header() {
                     Transactions
                   </NavLink>
                   <NavLink
-                    to="/dashboard/staking"
+                    to="/staking"
                     onClick={() => setIsMenuOpen(false)}
                     className={({ isActive }) =>
                       `block text-left w-full text-primary hover:text-accent-green transition-colors duration-200 py-2 ${isActive ? 'text-accent-green' : ''}`
