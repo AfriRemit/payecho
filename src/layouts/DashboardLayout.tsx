@@ -1,19 +1,17 @@
-import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { NetworkGuard } from '../components/web3/NetworkGuard';
 import { useOnboarding } from '../contexts/OnboardingContext';
 import { useAuth } from '../contexts/AuthContext';
-import { setPostLoginRedirect } from '../lib/postLoginRedirect';
 
 /** Public path: no login or onboarding required. */
 const PUBLIC_TRANSACTIONS_PATH = '/dashboard/transactions';
 
 export default function DashboardLayout() {
   const location = useLocation();
-  const navigate = useNavigate();
   const { isOnboarded } = useOnboarding();
-  const { isAuthenticated, ready, login } = useAuth();
+  const { isAuthenticated, ready } = useAuth();
   const isPublicTransactions = location.pathname === PUBLIC_TRANSACTIONS_PATH;
 
   useEffect(() => {
